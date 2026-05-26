@@ -104,6 +104,10 @@ func (rs *RankService) CheckOperationPermission(ctx context.Context, userID stri
 		return true, nil
 	}
 
+	if constant.RankRoleOnlyPrivilegeKeys[PermissionPrefix+action] {
+		return false, nil
+	}
+
 	if len(objectID) > 0 {
 		objectInfo, err := rs.objectInfoService.GetInfo(ctx, objectID)
 		if err != nil {
@@ -142,6 +146,9 @@ func (rs *RankService) CheckOperationPermissionsForRanks(ctx context.Context, us
 	for idx, action := range actions {
 		if powerMapping[action] {
 			can[idx] = true
+			continue
+		}
+		if constant.RankRoleOnlyPrivilegeKeys[PermissionPrefix+action] {
 			continue
 		}
 		meetRank, requireRank := rs.checkUserRank(ctx, userInfo.ID, userInfo.Rank, PermissionPrefix+action)

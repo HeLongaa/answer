@@ -92,6 +92,16 @@ func (ar *FollowRepo) GetFollowAmount(ctx context.Context, objectID string) (fol
 
 // GetFollowUserIDs get follow userID by objectID
 func (ar *FollowRepo) GetFollowUserIDs(ctx context.Context, objectID string) (userIDs []string, err error) {
+	return ar.getFollowUserIDsByCancelled(ctx, objectID, entity.ActivityAvailable)
+}
+
+// GetUnfollowUserIDs get user ids who explicitly cancelled following objectID
+func (ar *FollowRepo) GetUnfollowUserIDs(ctx context.Context, objectID string) (userIDs []string, err error) {
+	return ar.getFollowUserIDsByCancelled(ctx, objectID, entity.ActivityCancelled)
+}
+
+func (ar *FollowRepo) getFollowUserIDsByCancelled(ctx context.Context, objectID string, cancelled int) (
+	userIDs []string, err error) {
 	objectTypeStr, err := obj.GetObjectTypeStrByObjectID(objectID)
 	if err != nil {
 		return nil, err
@@ -107,7 +117,7 @@ func (ar *FollowRepo) GetFollowUserIDs(ctx context.Context, objectID string) (us
 	session.Table(entity.Activity{}.TableName())
 	session.Where("object_id = ?", objectID)
 	session.Where("activity_type = ?", activityType)
-	session.Where("cancelled = 0")
+	session.Where("cancelled = ?", cancelled)
 	err = session.Find(&userIDs)
 	if err != nil {
 		return nil, errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
@@ -135,29 +145,35 @@ func (ar *FollowRepo) GetFollowIDs(ctx context.Context, userID, objectKey string
 
 // IsFollowed check user if follow object or not
 func (ar *FollowRepo) IsFollowed(ctx context.Context, userID, objectID string) (followed bool, err error) {
+	followed, _, err = ar.IsFollowedWithCancelState(ctx, userID, objectID)
+	return followed, err
+}
+
+// IsFollowedWithCancelState checks follow state and whether a follow activity exists.
+func (ar *FollowRepo) IsFollowedWithCancelState(ctx context.Context, userID, objectID string) (
+	followed bool, exists bool, err error) {
 	objectKey, err := obj.GetObjectTypeStrByObjectID(objectID)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
 	activityType, err := ar.activityRepo.GetActivityTypeByObjectType(ctx, objectKey, "follow")
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
 	at := &entity.Activity{}
 	has, err := ar.data.DB.Context(ctx).Where("user_id = ? AND object_id = ? AND activity_type = ?", userID, objectID, activityType).Get(at)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 	if !has {
-		return false, nil
+		return false, false, nil
 	}
 	if at.Cancelled == entity.ActivityCancelled {
-		return false, nil
-	} else {
-		return true, nil
+		return false, true, nil
 	}
+	return true, true, nil
 }
 
 // MigrateFollowers migrate followers from source object to target object

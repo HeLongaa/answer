@@ -23,6 +23,7 @@ import { Link } from 'react-router-dom';
 
 import { FormatTime, Tag, Counts } from '@/components';
 import { pathFactory } from '@/router/pathFactory';
+import { sortTagsForDisplay } from '@/utils';
 
 interface Props {
   visible: boolean;
@@ -61,7 +62,7 @@ const Index: FC<Props> = ({ visible, data }) => {
               />
             </div>
             <div>
-              {item.question_info?.tags?.map((tag) => {
+              {sortTagsForDisplay(item.question_info?.tags).map((tag) => {
                 return <Tag key={tag.slug_name} className="me-1" data={tag} />;
               })}
             </div>

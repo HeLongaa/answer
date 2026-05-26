@@ -33,7 +33,7 @@ import {
   ImgViewer,
 } from '@/components';
 import { useRenderHtmlPlugin } from '@/utils/pluginKit';
-import { formatCount, guard } from '@/utils';
+import { formatCount, guard, sortTagsForDisplay } from '@/utils';
 import { following } from '@/services';
 import { pathFactory } from '@/router/pathFactory';
 
@@ -166,7 +166,7 @@ const Index: FC<Props> = ({ data, initPage, hasAnswer, isLogged }) => {
       </ImgViewer>
 
       <div className="m-n1">
-        {data?.tags?.map((item: any) => {
+        {sortTagsForDisplay(data?.tags).map((item: any) => {
           return <Tag className="m-1" key={item.slug_name} data={item} />;
         })}
       </div>

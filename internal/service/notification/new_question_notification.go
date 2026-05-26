@@ -26,6 +26,7 @@ import (
 
 	"github.com/apache/answer/internal/base/constant"
 	"github.com/apache/answer/internal/base/translator"
+	"github.com/apache/answer/internal/entity"
 	"github.com/apache/answer/internal/schema"
 	"github.com/apache/answer/pkg/display"
 	"github.com/apache/answer/pkg/token"
@@ -51,6 +52,7 @@ func (ns *ExternalNotificationService) handleNewQuestionNotification(ctx context
 	log.Debugf("get subscribers %d for question %s", len(subscribers), msg.NewQuestionTemplateRawData.QuestionID)
 
 	for _, subscriber := range subscribers {
+		ns.sendNewQuestionNotificationInbox(ctx, subscriber.UserID, msg)
 		for _, channel := range subscriber.Channels {
 			if !channel.Enable {
 				continue
@@ -69,6 +71,21 @@ func (ns *ExternalNotificationService) handleNewQuestionNotification(ctx context
 
 	ns.syncNewQuestionNotificationToPlugin(ctx, msg)
 	return nil
+}
+
+func (ns *ExternalNotificationService) sendNewQuestionNotificationInbox(
+	ctx context.Context, userID string, msg *schema.ExternalNotificationMsg) {
+	ns.inboxNotificationQueue.Send(ctx, &schema.NotificationMsg{
+		TriggerUserID:       msg.NewQuestionTemplateRawData.QuestionAuthorUserID,
+		ReceiverUserID:      userID,
+		Type:                schema.NotificationTypeInbox,
+		Title:               msg.NewQuestionTemplateRawData.QuestionTitle,
+		ObjectID:            msg.NewQuestionTemplateRawData.QuestionID,
+		ObjectType:          constant.QuestionObjectType,
+		NotificationAction:  constant.NotificationNewQuestionFollowedTag,
+		NoNeedPushAllFollow: true,
+		NoNeedSyncToPlugin:  true,
+	})
 }
 
 func (ns *ExternalNotificationService) getNewQuestionSubscribers(ctx context.Context, msg *schema.ExternalNotificationMsg) (
@@ -92,20 +109,31 @@ func (ns *ExternalNotificationService) getNewQuestionSubscribers(ctx context.Con
 			tagsFollowerIDs = append(tagsFollowerIDs, userID)
 		}
 	}
-	userNotificationConfigs, err := ns.userNotificationConfigRepo.GetByUsersAndSource(
-		ctx, tagsFollowerIDs, constant.AllNewQuestionForFollowingTagsSource)
-	if err != nil {
-		return nil, err
-	}
-	for _, userNotificationConfig := range userNotificationConfigs {
-		if _, ok := subscribersMapping[userNotificationConfig.UserID]; ok {
-			continue
+	ns.addFollowedTagSubscribers(ctx, subscribersMapping, tagsFollowerIDs)
+	reservedTagIDs := ns.getReservedTagIDs(ctx, msg.NewQuestionTemplateRawData.TagIDs)
+	if len(reservedTagIDs) > 0 {
+		reservedTagFollowerIDs, err := ns.getReservedTagFollowerIDs(ctx, reservedTagIDs)
+		if err != nil {
+			return nil, err
 		}
-		subscribersMapping[userNotificationConfig.UserID] = &NewQuestionSubscriber{
-			UserID:             userNotificationConfig.UserID,
-			Channels:           schema.NewNotificationChannelsFormJson(userNotificationConfig.Channels),
-			NotificationSource: constant.AllNewQuestionForFollowingTagsSource,
+		unfollowMapping := make(map[string]bool)
+		for _, tagID := range reservedTagIDs {
+			userIDs, err := ns.followRepo.GetUnfollowUserIDs(ctx, tagID)
+			if err != nil {
+				log.Error(err)
+				continue
+			}
+			for _, userID := range userIDs {
+				unfollowMapping[userID] = true
+			}
 		}
+		for _, userID := range reservedTagFollowerIDs {
+			if unfollowMapping[userID] {
+				continue
+			}
+			tagsFollowerIDs = append(tagsFollowerIDs, userID)
+		}
+		ns.addFollowedTagSubscribers(ctx, subscribersMapping, tagsFollowerIDs)
 	}
 	log.Debugf("get %d subscribers from tags", len(subscribersMapping))
 
@@ -135,6 +163,91 @@ func (ns *ExternalNotificationService) getNewQuestionSubscribers(ctx context.Con
 	}
 	log.Debugf("get %d subscribers from all new question config", len(subscribers))
 	return subscribers, nil
+}
+
+func (ns *ExternalNotificationService) addFollowedTagSubscribers(
+	ctx context.Context, subscribersMapping map[string]*NewQuestionSubscriber, userIDs []string) {
+	if len(userIDs) == 0 {
+		return
+	}
+	uniqueUserIDs := make([]string, 0, len(userIDs))
+	seenUserIDs := make(map[string]bool, len(userIDs))
+	for _, userID := range userIDs {
+		if seenUserIDs[userID] {
+			continue
+		}
+		seenUserIDs[userID] = true
+		uniqueUserIDs = append(uniqueUserIDs, userID)
+	}
+	userNotificationConfigs, err := ns.userNotificationConfigRepo.GetByUsersAndSource(
+		ctx, uniqueUserIDs, constant.AllNewQuestionForFollowingTagsSource)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	configMapping := make(map[string]*entity.UserNotificationConfig, len(userNotificationConfigs))
+	for _, userNotificationConfig := range userNotificationConfigs {
+		configMapping[userNotificationConfig.UserID] = userNotificationConfig
+	}
+	for _, userID := range uniqueUserIDs {
+		if _, ok := subscribersMapping[userID]; ok {
+			continue
+		}
+		channels := schema.NotificationChannels{
+			&schema.NotificationChannelConfig{
+				Key:    constant.EmailChannel,
+				Enable: true,
+			},
+		}
+		if userNotificationConfig, ok := configMapping[userID]; ok {
+			if !userNotificationConfig.Enabled {
+				continue
+			}
+			channels = schema.NewNotificationChannelsFormJson(userNotificationConfig.Channels)
+		}
+		subscribersMapping[userID] = &NewQuestionSubscriber{
+			UserID:             userID,
+			Channels:           channels,
+			NotificationSource: constant.AllNewQuestionForFollowingTagsSource,
+		}
+	}
+}
+
+func (ns *ExternalNotificationService) getReservedTagFollowerIDs(ctx context.Context, reservedTagIDs []string) (
+	userIDs []string, err error) {
+	if len(reservedTagIDs) == 0 {
+		return nil, nil
+	}
+	userIDs = make([]string, 0)
+	err = ns.data.DB.Context(ctx).Table(entity.User{}.TableName()).
+		Select("id").
+		Where("status = ?", entity.UserStatusAvailable).
+		Find(&userIDs)
+	if err != nil {
+		return nil, err
+	}
+	return userIDs, nil
+}
+
+func (ns *ExternalNotificationService) getReservedTagIDs(ctx context.Context, tagIDs []string) []string {
+	if len(tagIDs) == 0 {
+		return nil
+	}
+	tags := make([]*entity.Tag, 0)
+	err := ns.data.DB.Context(ctx).
+		In("id", tagIDs).
+		Where("reserved = ?", true).
+		Where("status = ?", entity.TagStatusAvailable).
+		Find(&tags)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	reservedTagIDs := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		reservedTagIDs = append(reservedTagIDs, tag.ID)
+	}
+	return reservedTagIDs
 }
 
 func (ns *ExternalNotificationService) checkSendNewQuestionNotificationEmailLimit(ctx context.Context, userID string) bool {

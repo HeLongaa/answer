@@ -18,7 +18,7 @@
  */
 
 import { FC, memo } from 'react';
-import { ButtonGroup, Button, DropdownButton, Dropdown } from 'react-bootstrap';
+import { ButtonGroup, Button, Dropdown } from 'react-bootstrap';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -103,58 +103,88 @@ const Index: FC<Props> = ({
           );
         })}
         {moreBtnData.length > 0 && (
-          <DropdownButton
-            size="sm"
-            variant={currentBtn ? 'secondary' : 'outline-secondary'}
+          <Dropdown
             as={ButtonGroup}
-            title={currentBtn ? t(currentSort) : t('more')}>
-            {moreBtnData.map((btn) => {
-              const key = typeof btn === 'string' ? btn : btn.sort;
-              const name = typeof btn === 'string' ? btn : btn.name;
-              return (
-                <Dropdown.Item
-                  as="a"
-                  key={key}
-                  active={currentSort === name}
-                  className={classNames('text-capitalize', className)}
-                  href={
-                    pathname
-                      ? `${REACT_BASE_PATH}${pathname}${handleParams(key)}`
-                      : handleParams(key)
-                  }
-                  onClick={(evt) => handleClick(evt, key)}>
-                  {t(name)}
-                </Dropdown.Item>
-              );
-            })}
-          </DropdownButton>
+            align="end"
+            drop="down"
+            className="question-filter-dropdown">
+            <Dropdown.Toggle
+              size="sm"
+              variant={currentBtn ? 'secondary' : 'outline-secondary'}>
+              {currentBtn ? t(currentSort) : t('more')}
+            </Dropdown.Toggle>
+            <Dropdown.Menu
+              renderOnMount
+              popperConfig={{
+                strategy: 'fixed',
+                modifiers: [
+                  { name: 'flip', enabled: false },
+                  { name: 'preventOverflow', enabled: false },
+                ],
+              }}>
+              {moreBtnData.map((btn) => {
+                const key = typeof btn === 'string' ? btn : btn.sort;
+                const name = typeof btn === 'string' ? btn : btn.name;
+                return (
+                  <Dropdown.Item
+                    as="a"
+                    key={key}
+                    active={currentSort === name}
+                    className={classNames('text-capitalize', className)}
+                    href={
+                      pathname
+                        ? `${REACT_BASE_PATH}${pathname}${handleParams(key)}`
+                        : handleParams(key)
+                    }
+                    onClick={(evt) => handleClick(evt, key)}>
+                    {t(name)}
+                  </Dropdown.Item>
+                );
+              })}
+            </Dropdown.Menu>
+          </Dropdown>
         )}
       </ButtonGroup>
-      <DropdownButton
-        size="sm"
-        variant="outline-secondary"
-        className={classNames('md-hide', wrapClassName)}
-        title={t(currentSort)}>
-        {data.map((btn) => {
-          const key = typeof btn === 'string' ? btn : btn.sort;
-          const name = typeof btn === 'string' ? btn : btn.name;
-          return (
-            <Dropdown.Item
-              as="a"
-              key={key}
-              active={currentSort === name}
-              className={classNames('text-capitalize', className)}
-              href={
-                pathname
-                  ? `${REACT_BASE_PATH}${pathname}${handleParams(key)}`
-                  : handleParams(key)
-              }
-              onClick={(evt) => handleClick(evt, key)}>
-              {t(name)}
-            </Dropdown.Item>
-          );
-        })}
-      </DropdownButton>
+      <Dropdown
+        align="end"
+        drop="down"
+        className={classNames(
+          'md-hide question-filter-dropdown',
+          wrapClassName,
+        )}>
+        <Dropdown.Toggle size="sm" variant="outline-secondary">
+          {t(currentSort)}
+        </Dropdown.Toggle>
+        <Dropdown.Menu
+          renderOnMount
+          popperConfig={{
+            strategy: 'fixed',
+            modifiers: [
+              { name: 'flip', enabled: false },
+              { name: 'preventOverflow', enabled: false },
+            ],
+          }}>
+          {data.map((btn) => {
+            const key = typeof btn === 'string' ? btn : btn.sort;
+            const name = typeof btn === 'string' ? btn : btn.name;
+            return (
+              <Dropdown.Item
+                as="a"
+                key={key}
+                active={currentSort === name}
+                className={classNames('text-capitalize', className)}
+                href={
+                  pathname
+                    ? `${REACT_BASE_PATH}${pathname}${handleParams(key)}`
+                    : handleParams(key)
+                }
+                onClick={(evt) => handleClick(evt, key)}>
+                {t(name)}
+              </Dropdown.Item>
+            );
+          })}
+        </Dropdown.Menu>
+      </Dropdown>
     </>
   );
 };

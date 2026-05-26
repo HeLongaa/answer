@@ -516,6 +516,8 @@ const Ask = () => {
                 maxTagLength={5}
                 isInvalid={formData.tags.isInvalid}
                 errMsg={formData.tags.errorMsg}
+                selectOnly
+                excludeReservedForNormalUser
               />
             </Form.Group>
             {!isEdit && (

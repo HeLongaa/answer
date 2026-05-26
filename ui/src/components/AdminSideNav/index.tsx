@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useEffect } from 'react';
+import { FC, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -27,11 +27,17 @@ import { AccordionNav, Icon } from '@/components';
 import type { MenuItem } from '@/components/AccordionNav';
 import { ADMIN_NAV_MENUS } from '@/common/constants';
 import { useQueryPlugins } from '@/services';
-import { interfaceStore } from '@/stores';
+import { brandingStore, interfaceStore, siteInfoStore } from '@/stores';
 
-const AdminSideNav = () => {
+interface IProps {
+  showBrand?: boolean;
+}
+
+const AdminSideNav: FC<IProps> = ({ showBrand = true }) => {
   const { t } = useTranslation('translation', { keyPrefix: 'btns' });
   const interfaceLang = interfaceStore((_) => _.interface.language);
+  const siteInfo = siteInfoStore((state) => state.siteInfo);
+  const brandingInfo = brandingStore((state) => state.branding);
   const { data: configurablePlugins, mutate: updateConfigurablePlugins } =
     useQueryPlugins({
       status: 'active',
@@ -72,8 +78,26 @@ const AdminSideNav = () => {
 
   return (
     <div id="adminSideNav">
-      <NavLink to="/" className="pb-3 d-inline-block link-secondary">
-        <Icon name="arrow-left" className="me-2" />
+      {showBrand && (
+        <NavLink to="/" className="admin-side-site-brand side-nav-site-brand">
+          {brandingInfo.mobile_logo || brandingInfo.logo ? (
+            <img
+              className="admin-side-brand-logo side-nav-brand-logo"
+              src={brandingInfo.mobile_logo || brandingInfo.logo}
+              alt={siteInfo.name}
+            />
+          ) : (
+            <span className="admin-side-brand-mark side-nav-brand-mark">
+              {siteInfo.name.slice(0, 1)}
+            </span>
+          )}
+          <span className="admin-side-brand-name side-nav-brand-name">
+            {siteInfo.name}
+          </span>
+        </NavLink>
+      )}
+      <NavLink to="/" className="admin-back-site">
+        <Icon name="arrow-left" />
         <span>{t('back_sites')}</span>
       </NavLink>
       <AccordionNav menus={menus} path="/admin/" />

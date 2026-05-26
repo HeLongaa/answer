@@ -21,8 +21,9 @@ import { FC, memo } from 'react';
 
 import classnames from 'classnames';
 
+import type { TagBase } from '@/common/interface';
 import { Tag } from '@/components';
-import { diffText } from '@/utils';
+import { diffText, sortTagsForDisplay } from '@/utils';
 
 interface Props {
   objectType: string | 'question' | 'answer' | 'tag';
@@ -47,7 +48,8 @@ const Index: FC<Props> = ({
 }) => {
   if (!newData) return null;
 
-  let tag = newData.tags;
+  let tag: Array<TagBase & { state?: string; pre_index?: number }> =
+    newData.tags;
   if (objectType === 'question' && oldData?.tags) {
     const addTags = newData.tags.filter(
       (c) => !oldData?.tags?.find((p) => p.slug_name === c.slug_name),
@@ -98,7 +100,7 @@ const Index: FC<Props> = ({
       )}
       {objectType === 'question' && (
         <div className="mb-4">
-          {tag?.map((item) => {
+          {sortTagsForDisplay(tag).map((item) => {
             return (
               <Tag
                 key={item.slug_name}

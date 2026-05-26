@@ -18,7 +18,7 @@
  */
 
 import { FC, useEffect, useState } from 'react';
-import { Row, Col, Button } from 'react-bootstrap';
+import { Row, Col, Button, Alert } from 'react-bootstrap';
 import {
   useParams,
   Link,
@@ -40,6 +40,8 @@ import QuestionList, { QUESTION_ORDER_KEYS } from '@/components/QuestionList';
 import HotQuestions from '@/components/HotQuestions';
 import { guard, pageTitleType } from '@/utils';
 import { pathFactory } from '@/router/pathFactory';
+import MergeTagModal from '../Info/components/MergeTagModal';
+import { useTagManageActions } from '../useTagManageActions';
 
 const Index: FC = () => {
   const { t } = useTranslation('translation', { keyPrefix: 'tags' });
@@ -58,13 +60,22 @@ const Index: FC = () => {
   };
   const [tagInfo, setTagInfo] = useState<any>({});
   const [tagFollow, setTagFollow] = useState<Type.FollowParams>();
-  const { data: tagResp, isLoading } = useTagInfo({ name: curTagName });
+  const {
+    data: tagResp,
+    isLoading,
+    mutate: refreshTagInfo,
+  } = useTagInfo({ name: curTagName });
   const { data: listData, isLoading: listLoading } = useQuestionList(reqParams);
   const { data: followResp } = useFollow(tagFollow);
   const { data: synonymsRes } = useQuerySynonymsTags(
     tagInfo?.tag_id,
     tagInfo?.status,
   );
+  const { showMergeModal, setShowMergeModal, onAction, handleMergeConfirm } =
+    useTagManageActions({
+      tagInfo,
+      refreshTagInfo,
+    });
   const toggleFollow = () => {
     if (!guard.tryNormalLogged(true)) {
       return;
@@ -134,14 +145,36 @@ const Index: FC = () => {
           </div>
         ) : (
           <div className="tag-box mb-5">
-            <h3 className="mb-3">
-              <Link
-                to={pathFactory.tagLanding(tagInfo.slug_name)}
-                replace
-                className="link-dark">
-                {tagInfo.display_name}
-              </Link>
-            </h3>
+            {tagInfo?.status === 'deleted' && (
+              <Alert variant="danger" className="mb-4">
+                {t('post_deleted', { keyPrefix: 'messages' })}
+              </Alert>
+            )}
+            <div className="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+              <h3 className="mb-0">
+                <Link
+                  to={pathFactory.tagLanding(tagInfo.slug_name)}
+                  replace
+                  className="link-dark">
+                  {tagInfo.display_name}
+                </Link>
+              </h3>
+              {tagInfo?.member_actions?.length > 0 && (
+                <div className="d-flex flex-wrap gap-2">
+                  {tagInfo.member_actions.map((action) => (
+                    <Button
+                      key={action.name}
+                      variant={
+                        action.action === 'delete' ? 'outline-danger' : 'light'
+                      }
+                      size="sm"
+                      onClick={() => onAction(action)}>
+                      {action.name}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div
               className="text-break"
@@ -195,6 +228,14 @@ const Index: FC = () => {
         <FollowingTags />
         <HotQuestions />
       </Col>
+      {tagInfo?.tag_id && (
+        <MergeTagModal
+          visible={showMergeModal}
+          sourceTag={tagInfo}
+          onClose={() => setShowMergeModal(false)}
+          onConfirm={handleMergeConfirm}
+        />
+      )}
     </Row>
   );
 };

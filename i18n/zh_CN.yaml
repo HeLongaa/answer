@@ -479,6 +479,8 @@ backend:
         other: 点赞评论
       invited_you_to_answer:
         other: 邀请你回答
+      new_question_followed_tag:
+        other: 在你关注的标签中发布了新问题
       earned_badge:
         other: 你获得 "{{.BadgeName}}" 徽章
   email_tpl:
@@ -1177,12 +1179,15 @@ ui:
     post_question&answer: 提交问题和回答
   tag_selector:
     add_btn: 添加标签
+    select_placeholder: 选择标签
     create_btn: 创建新标签
     search_tag: 搜索标签
     hint: 描述您的内容是关于什么，至少需要一个标签。
     hint_zero_tags: 描述您的内容与什么有关。
     hint_more_than_one_tag: "描述您的内容是关于什么，至少需要{{min_tags_number}}个标签。"
     no_result: 没有匹配的标签
+    no_selectable_tags: 没有可选标签
+    loading: 加载中...
     tag_required_text: 必选标签（至少一个）
   header:
     nav:
@@ -1599,6 +1604,7 @@ ui:
     answered: 回答于
     asked: 提问于
     closed: 已关闭
+    pinned: 置顶
     follow_a_tag: 关注一个标签
     more: 更多
   personal:
@@ -2446,5 +2452,3 @@ ui:
     copy: 复制到剪贴板
     copied: 已复制
     external_content_warning: 外部图像/媒体未显示。
-
-

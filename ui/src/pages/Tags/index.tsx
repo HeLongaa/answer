@@ -19,19 +19,21 @@
 
 import { useState } from 'react';
 import { Row, Col, Card, Button, Form, Stack } from 'react-bootstrap';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import { usePageTags, useSkeletonControl } from '@/hooks';
 import { Tag, Pagination, QueryGroup, TagsLoader } from '@/components';
-import { formatCount, escapeRemove } from '@/utils';
+import { formatCount, escapeRemove, sortTagsForDisplay } from '@/utils';
 import { tryNormalLogged } from '@/utils/guard';
 import { useQueryTags, following } from '@/services';
 import { loggedUserInfoStore } from '@/stores';
+import { pathFactory } from '@/router/pathFactory';
 
 const sortBtns = ['popular', 'name', 'newest'];
 
 const Tags = () => {
+  const navigate = useNavigate();
   const [urlSearch, setUrlSearch] = useSearchParams();
   const { t } = useTranslation('translation', { keyPrefix: 'tags' });
   const [searchTag, setSearchTag] = useState('');
@@ -72,6 +74,18 @@ const Tags = () => {
     }).then(() => {
       mutate();
     });
+  };
+
+  const openTag = (tag) => {
+    navigate(pathFactory.tagLanding(tag.slug_name));
+  };
+
+  const handleCardKeyDown = (event, tag) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+    event.preventDefault();
+    openTag(tag);
   };
 
   usePageTags({
@@ -117,7 +131,7 @@ const Tags = () => {
           {isSkeletonShow ? (
             <TagsLoader />
           ) : (
-            tags?.list?.map((tag) => (
+            sortTagsForDisplay(tags?.list).map((tag) => (
               <Col
                 key={tag.slug_name}
                 xl={3}
@@ -126,7 +140,12 @@ const Tags = () => {
                 sm={6}
                 xs={12}
                 className="mb-4">
-                <Card className="h-100">
+                <Card
+                  className="h-100 tag-list-card"
+                  role="link"
+                  tabIndex={0}
+                  onClick={() => openTag(tag)}
+                  onKeyDown={(event) => handleCardKeyDown(event, tag)}>
                   <Card.Body className="d-flex flex-column align-items-start">
                     <Tag className="mb-3" data={tag} />
 
@@ -138,7 +157,10 @@ const Tags = () => {
                         className={`me-2 ${tag.is_follower ? 'active' : ''}`}
                         variant="outline-primary"
                         size="sm"
-                        onClick={() => handleFollow(tag)}>
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleFollow(tag);
+                        }}>
                         {tag.is_follower
                           ? t('button_following')
                           : t('button_follow')}

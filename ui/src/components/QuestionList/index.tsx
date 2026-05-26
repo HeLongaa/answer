@@ -37,8 +37,11 @@ import {
 } from '@/components';
 import * as Type from '@/common/interface';
 import { useSkeletonControl } from '@/hooks';
+import { sortTagsForDisplay } from '@/utils';
 import Storage from '@/utils/storage';
 import { LIST_VIEW_STORAGE_KEY } from '@/common/constants';
+
+import './index.scss';
 
 export const QUESTION_ORDER_KEYS: Type.QuestionOrderBy[] = [
   'newest',
@@ -116,12 +119,21 @@ const QuestionList: FC<Props> = ({
             maxBtnCount={source === 'tag' ? 3 : 4}
             wrapClassName="me-2"
           />
-          <Dropdown align="end" onSelect={handleViewMode}>
+          <Dropdown align="end" drop="down" onSelect={handleViewMode}>
             <Dropdown.Toggle variant="outline-secondary" size="sm">
               <Icon name={viewType === 'card' ? 'view-stacked' : 'list'} />
             </Dropdown.Toggle>
 
-            <Dropdown.Menu>
+            <Dropdown.Menu
+              renderOnMount
+              className="question-view-dropdown-menu"
+              popperConfig={{
+                strategy: 'fixed',
+                modifiers: [
+                  { name: 'flip', enabled: false },
+                  { name: 'preventOverflow', enabled: false },
+                ],
+              }}>
               <Dropdown.Header as="h6">
                 {t('view', { keyPrefix: 'btns' })}
               </Dropdown.Header>
@@ -176,25 +188,14 @@ const QuestionList: FC<Props> = ({
                       {li.status === 2 ? ` [${t('closed')}]` : ''}
                     </NavLink>
                   </h5>
-                  {viewType === 'card' && (
-                    <div className="text-truncate-2 mb-2">
-                      <NavLink
-                        to={pathFactory.questionLanding(li.id, li.url_title)}
-                        className="d-block small text-body"
-                        dangerouslySetInnerHTML={{ __html: li.description }}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  )}
-
                   <div className="question-tags mb-12">
                     {Array.isArray(li.tags)
-                      ? li.tags.map((tag, index) => {
+                      ? sortTagsForDisplay(li.tags).map((tag, index, arr) => {
                           return (
                             <Tag
                               key={tag.slug_name}
                               className={`${
-                                li.tags.length - 1 === index ? '' : 'me-1'
+                                arr.length - 1 === index ? '' : 'me-1'
                               }`}
                               data={tag}
                             />

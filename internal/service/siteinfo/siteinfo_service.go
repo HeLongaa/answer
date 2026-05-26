@@ -561,7 +561,7 @@ func (s *SiteInfoService) GetPrivilegesConfig(ctx context.Context) (resp *schema
 		privilegeOptions = append(privilegeOptions, &schema.PrivilegeOption{
 			Level:      schema.PrivilegeLevelCustom,
 			LevelDesc:  reason.PrivilegeLevelCustomDesc,
-			Privileges: privilege.CustomPrivileges,
+			Privileges: s.filterRankPrivileges(privilege.CustomPrivileges),
 		})
 	} else {
 		privilegeOptions = append(privilegeOptions, schema.DefaultCustomPrivilegeOption)
@@ -618,6 +618,9 @@ func (s *SiteInfoService) UpdatePrivilegesConfig(ctx context.Context, req *schem
 		}
 		var privileges []*constant.Privilege
 		for _, privilege := range constant.RankAllPrivileges {
+			if constant.RankRoleOnlyPrivilegeKeys[privilege.Key] {
+				continue
+			}
 			privileges = append(privileges, &constant.Privilege{
 				Key:   privilege.Key,
 				Label: privilege.Label,
@@ -630,7 +633,7 @@ func (s *SiteInfoService) UpdatePrivilegesConfig(ctx context.Context, req *schem
 		if err = s.siteInfoCommonService.GetSiteInfoByType(ctx, constant.SiteTypePrivileges, privilege); err != nil {
 			return err
 		}
-		req.CustomPrivileges = privilege.CustomPrivileges
+		req.CustomPrivileges = s.filterRankPrivileges(privilege.CustomPrivileges)
 	}
 
 	content, _ := json.Marshal(req)
@@ -646,12 +649,26 @@ func (s *SiteInfoService) UpdatePrivilegesConfig(ctx context.Context, req *schem
 
 	// update privilege in config
 	for _, privilege := range choosePrivileges {
+		if constant.RankRoleOnlyPrivilegeKeys[privilege.Key] {
+			continue
+		}
 		err = s.configService.UpdateConfig(ctx, privilege.Key, fmt.Sprintf("%d", privilege.Value))
 		if err != nil {
 			return err
 		}
 	}
 	return
+}
+
+func (s *SiteInfoService) filterRankPrivileges(privileges []*constant.Privilege) []*constant.Privilege {
+	filtered := make([]*constant.Privilege, 0, len(privileges))
+	for _, privilege := range privileges {
+		if privilege == nil || constant.RankRoleOnlyPrivilegeKeys[privilege.Key] {
+			continue
+		}
+		filtered = append(filtered, privilege)
+	}
+	return filtered
 }
 
 func (s *SiteInfoService) CleanUpRemovedBrandingFiles(

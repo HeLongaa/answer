@@ -24,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import isEmpty from 'lodash/isEmpty';
 
-import { Empty } from '@/components';
+import { Empty, Icon } from '@/components';
 import { loggedUserInfoStore } from '@/stores';
 
 import './index.scss';
@@ -32,6 +32,39 @@ import './index.scss';
 const Achievements = ({ data, handleReadNotification }) => {
   const { user } = loggedUserInfoStore();
   const { t } = useTranslation('translation', { keyPrefix: 'notifications' });
+
+  const renderBadgeIcon = (item) => {
+    const {
+      badge_icon: badgeIcon,
+      badge_name: badgeName,
+      badge_level: level,
+    } = item?.object_info?.object_map || {};
+    if (!badgeIcon) {
+      return <div className="icon text-end">👏</div>;
+    }
+    if (badgeIcon.startsWith('http')) {
+      return (
+        <div className="icon achievement-badge-icon">
+          <img src={badgeIcon} alt={badgeName || item.object_info.title} />
+        </div>
+      );
+    }
+    const badgeLevel = Number(level);
+    return (
+      <div className="icon achievement-badge-icon">
+        <Icon
+          name={badgeIcon}
+          size="32px"
+          className={classNames(
+            'lh-1',
+            badgeLevel === 1 && 'bronze',
+            badgeLevel === 2 && 'silver',
+            badgeLevel === 3 && 'gold',
+          )}
+        />
+      </div>
+    );
+  };
 
   if (!data) {
     return null;
@@ -69,7 +102,7 @@ const Achievements = ({ data, handleReadNotification }) => {
               !item.is_read && 'warning',
             )}>
             {item.object_info.object_type === 'badge_award' ? (
-              <div className="icon text-end">👏</div>
+              renderBadgeIcon(item)
             ) : (
               <>
                 {item.rank > 0 && (

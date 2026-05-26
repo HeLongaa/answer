@@ -25,6 +25,7 @@ export { default as SaveDraft } from './saveDraft';
 
 export * from './common';
 export * from './color';
+export * from './tags';
 export * as userCenter from './userCenter';
 export * as localize from './localize';
 export * as guard from './guard';

@@ -63,6 +63,21 @@ func (tc *TagController) SearchTagLike(ctx *gin.Context) {
 	if handler.BindAndCheck(ctx, req) {
 		return
 	}
+	userID := middleware.GetLoginUserIDFromContext(ctx)
+	if len(userID) > 0 {
+		if middleware.GetUserIsAdminModerator(ctx) {
+			req.CanUseReservedTag = true
+		} else {
+			canList, _, err := tc.rankService.CheckOperationPermissionsForRanks(ctx, userID, []string{
+				permission.TagUseReservedTag,
+			})
+			if err != nil {
+				handler.HandleResponse(ctx, err, nil)
+				return
+			}
+			req.CanUseReservedTag = canList[0]
+		}
+	}
 	resp, err := tc.tagCommonService.SearchTagLike(ctx, req)
 	handler.HandleResponse(ctx, err, resp)
 }
@@ -102,14 +117,19 @@ func (tc *TagController) RemoveTag(ctx *gin.Context) {
 	}
 
 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
-	can, err := tc.rankService.CheckOperationPermission(ctx, req.UserID, permission.TagDelete, "")
-	if err != nil {
-		handler.HandleResponse(ctx, err, nil)
-		return
-	}
-	if !can {
-		handler.HandleResponse(ctx, errors.Forbidden(reason.RankFailToMeetTheCondition), nil)
-		return
+	isAdminModerator := middleware.GetUserIsAdminModerator(ctx)
+	var err error
+	if !isAdminModerator {
+		var can bool
+		can, err = tc.rankService.CheckOperationPermission(ctx, req.UserID, permission.TagDelete, "")
+		if err != nil {
+			handler.HandleResponse(ctx, err, nil)
+			return
+		}
+		if !can {
+			handler.HandleResponse(ctx, errors.Forbidden(reason.RankFailToMeetTheCondition), nil)
+			return
+		}
 	}
 	err = tc.tagService.RemoveTag(ctx, req)
 	handler.HandleResponse(ctx, err, nil)
@@ -132,16 +152,19 @@ func (tc *TagController) AddTag(ctx *gin.Context) {
 	}
 
 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
-	canList, err := tc.rankService.CheckOperationPermissions(ctx, req.UserID, []string{
-		permission.TagAdd,
-	})
-	if err != nil {
-		handler.HandleResponse(ctx, err, nil)
-		return
-	}
-	if !canList[0] {
-		handler.HandleResponse(ctx, errors.Forbidden(reason.RankFailToMeetTheCondition), nil)
-		return
+	isAdminModerator := middleware.GetUserIsAdminModerator(ctx)
+	if !isAdminModerator {
+		canList, err := tc.rankService.CheckOperationPermissions(ctx, req.UserID, []string{
+			permission.TagAdd,
+		})
+		if err != nil {
+			handler.HandleResponse(ctx, err, nil)
+			return
+		}
+		if !canList[0] {
+			handler.HandleResponse(ctx, errors.Forbidden(reason.RankFailToMeetTheCondition), nil)
+			return
+		}
 	}
 
 	resp, err := tc.tagCommonService.AddTag(ctx, req)
@@ -165,19 +188,26 @@ func (tc *TagController) UpdateTag(ctx *gin.Context) {
 	}
 
 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
-	canList, err := tc.rankService.CheckOperationPermissions(ctx, req.UserID, []string{
-		permission.TagEdit,
-		permission.TagEditWithoutReview,
-	})
-	if err != nil {
-		handler.HandleResponse(ctx, err, nil)
-		return
+	isAdminModerator := middleware.GetUserIsAdminModerator(ctx)
+	var err error
+	if isAdminModerator {
+		req.NoNeedReview = true
+	} else {
+		var canList []bool
+		canList, err = tc.rankService.CheckOperationPermissions(ctx, req.UserID, []string{
+			permission.TagEdit,
+			permission.TagEditWithoutReview,
+		})
+		if err != nil {
+			handler.HandleResponse(ctx, err, nil)
+			return
+		}
+		if !canList[0] {
+			handler.HandleResponse(ctx, errors.Forbidden(reason.RankFailToMeetTheCondition), nil)
+			return
+		}
+		req.NoNeedReview = canList[1]
 	}
-	if !canList[0] {
-		handler.HandleResponse(ctx, errors.Forbidden(reason.RankFailToMeetTheCondition), nil)
-		return
-	}
-	req.NoNeedReview = canList[1]
 
 	err = tc.tagService.UpdateTag(ctx, req)
 	if err != nil {
@@ -204,16 +234,21 @@ func (tc *TagController) RecoverTag(ctx *gin.Context) {
 	}
 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
 
-	canList, err := tc.rankService.CheckOperationPermissions(ctx, req.UserID, []string{
-		permission.TagUnDelete,
-	})
-	if err != nil {
-		handler.HandleResponse(ctx, err, nil)
-		return
-	}
-	if !canList[0] {
-		handler.HandleResponse(ctx, errors.Forbidden(reason.RankFailToMeetTheCondition), nil)
-		return
+	isAdminModerator := middleware.GetUserIsAdminModerator(ctx)
+	var err error
+	if !isAdminModerator {
+		var canList []bool
+		canList, err = tc.rankService.CheckOperationPermissions(ctx, req.UserID, []string{
+			permission.TagUnDelete,
+		})
+		if err != nil {
+			handler.HandleResponse(ctx, err, nil)
+			return
+		}
+		if !canList[0] {
+			handler.HandleResponse(ctx, errors.Forbidden(reason.RankFailToMeetTheCondition), nil)
+			return
+		}
 	}
 
 	err = tc.tagService.RecoverTag(ctx, req)
@@ -237,19 +272,26 @@ func (tc *TagController) GetTagInfo(ctx *gin.Context) {
 	}
 
 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
-	canList, err := tc.rankService.CheckOperationPermissions(ctx, req.UserID, []string{
-		permission.TagEdit,
-		permission.TagDelete,
-		permission.TagUnDelete,
-	})
-	if err != nil {
-		handler.HandleResponse(ctx, err, nil)
-		return
+	isAdminModerator := middleware.GetUserIsAdminModerator(ctx)
+	if isAdminModerator {
+		req.CanEdit = true
+		req.CanDelete = true
+		req.CanRecover = true
+	} else {
+		canList, err := tc.rankService.CheckOperationPermissions(ctx, req.UserID, []string{
+			permission.TagEdit,
+			permission.TagDelete,
+			permission.TagUnDelete,
+		})
+		if err != nil {
+			handler.HandleResponse(ctx, err, nil)
+			return
+		}
+		req.CanEdit = canList[0]
+		req.CanDelete = canList[1]
+		req.CanRecover = canList[2]
 	}
-	req.CanEdit = canList[0]
-	req.CanDelete = canList[1]
-	req.CanRecover = canList[2]
-	req.CanMerge = middleware.GetUserIsAdminModerator(ctx)
+	req.CanMerge = isAdminModerator
 
 	resp, err := tc.tagService.GetTagInfo(ctx, req)
 	handler.HandleResponse(ctx, err, resp)
@@ -315,10 +357,14 @@ func (tc *TagController) GetTagSynonyms(ctx *gin.Context) {
 	}
 
 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
-	can, err := tc.rankService.CheckOperationPermission(ctx, req.UserID, permission.TagSynonym, "")
-	if err != nil {
-		handler.HandleResponse(ctx, err, nil)
-		return
+	can := middleware.GetUserIsAdminModerator(ctx)
+	var err error
+	if !can {
+		can, err = tc.rankService.CheckOperationPermission(ctx, req.UserID, permission.TagSynonym, "")
+		if err != nil {
+			handler.HandleResponse(ctx, err, nil)
+			return
+		}
 	}
 	req.CanEdit = can
 
@@ -343,10 +389,14 @@ func (tc *TagController) UpdateTagSynonym(ctx *gin.Context) {
 	}
 
 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
-	can, err := tc.rankService.CheckOperationPermission(ctx, req.UserID, permission.TagSynonym, "")
-	if err != nil {
-		handler.HandleResponse(ctx, err, nil)
-		return
+	can := middleware.GetUserIsAdminModerator(ctx)
+	var err error
+	if !can {
+		can, err = tc.rankService.CheckOperationPermission(ctx, req.UserID, permission.TagSynonym, "")
+		if err != nil {
+			handler.HandleResponse(ctx, err, nil)
+			return
+		}
 	}
 	if !can {
 		handler.HandleResponse(ctx, errors.Forbidden(reason.RankFailToMeetTheCondition), nil)

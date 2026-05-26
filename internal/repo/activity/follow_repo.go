@@ -147,11 +147,25 @@ func (ar *FollowRepo) FollowCancel(ctx context.Context, objectID, userID string)
 			And(builder.Eq{"object_id": objectID}).
 			Get(&existsActivity)
 
-		if err != nil || !has {
+		if err != nil {
 			return
 		}
 
-		if has && existsActivity.Cancelled == entity.ActivityCancelled {
+		if !has {
+			_, err = session.Insert(&entity.Activity{
+				UserID:           userID,
+				ObjectID:         objectID,
+				OriginalObjectID: objectID,
+				ActivityType:     activityType,
+				Cancelled:        entity.ActivityCancelled,
+				CancelledAt:      time.Now(),
+				Rank:             0,
+				HasRank:          0,
+			})
+			return
+		}
+
+		if existsActivity.Cancelled == entity.ActivityCancelled {
 			return
 		}
 		if _, err = session.Where("id = ?", existsActivity.ID).

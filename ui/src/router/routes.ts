@@ -59,15 +59,15 @@ const routes: RouteNode[] = [
       };
     },
     children: [
+      {
+        index: true,
+        page: 'pages/Chat',
+      },
       // question and answer
       {
         // side nav layout
         page: 'pages/SideNavLayout',
         children: [
-          {
-            index: true,
-            page: 'pages/Questions',
-          },
           {
             path: 'questions',
             page: 'pages/Questions',

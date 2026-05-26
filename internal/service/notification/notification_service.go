@@ -23,6 +23,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+
+	"github.com/segmentfault/pacman/i18n"
 
 	"github.com/apache/answer/internal/base/constant"
 	"github.com/apache/answer/internal/base/data"
@@ -236,6 +239,8 @@ func (ns *NotificationService) formatNotificationPage(ctx context.Context, notif
 	enableShortID := handler.GetEnableShortID(ctx)
 	userIDs := make([]string, 0)
 	userMapping := make(map[string]bool)
+	badgeIDs := make([]string, 0)
+	badgeIDMapping := make(map[string]bool)
 	for _, notificationInfo := range notifications {
 		item := &schema.NotificationContent{}
 		if err := json.Unmarshal([]byte(notificationInfo.Content), item); err != nil {
@@ -254,6 +259,13 @@ func (ns *NotificationService) formatNotificationPage(ctx context.Context, notif
 				BadgeName string
 			}{BadgeName: badgeName})
 			item.UserInfo = nil
+			if item.ObjectInfo.ObjectMap != nil {
+				badgeID := item.ObjectInfo.ObjectMap["badge_id"]
+				if len(badgeID) > 0 && !badgeIDMapping[badgeID] {
+					badgeIDs = append(badgeIDs, badgeID)
+					badgeIDMapping[badgeID] = true
+				}
+			}
 		}
 
 		item.ID = notificationInfo.ID
@@ -284,6 +296,7 @@ func (ns *NotificationService) formatNotificationPage(ctx context.Context, notif
 	}
 
 	if len(userIDs) == 0 {
+		ns.fillBadgeAwardInfo(ctx, lang, resp, badgeIDs)
 		return resp
 	}
 
@@ -311,5 +324,39 @@ func (ns *NotificationService) formatNotificationPage(ctx context.Context, notif
 			}
 		}
 	}
+	ns.fillBadgeAwardInfo(ctx, lang, resp, badgeIDs)
 	return resp
+}
+
+func (ns *NotificationService) fillBadgeAwardInfo(
+	ctx context.Context,
+	lang i18n.Language,
+	notifications []*schema.NotificationContent,
+	badgeIDs []string,
+) {
+	if len(badgeIDs) == 0 {
+		return
+	}
+	badges, err := ns.badgeRepo.GetByIDs(ctx, badgeIDs)
+	if err != nil {
+		log.Errorf("get badges failed: %v", err)
+		return
+	}
+	badgeMapping := make(map[string]*entity.Badge, len(badges))
+	for _, item := range badges {
+		badgeMapping[item.ID] = item
+	}
+	for _, item := range notifications {
+		if item.ObjectInfo.ObjectType != constant.BadgeAwardObjectType || item.ObjectInfo.ObjectMap == nil {
+			continue
+		}
+		badgeID := item.ObjectInfo.ObjectMap["badge_id"]
+		badgeInfo, ok := badgeMapping[badgeID]
+		if !ok {
+			continue
+		}
+		item.ObjectInfo.ObjectMap["badge_name"] = translator.Tr(lang, badgeInfo.Name)
+		item.ObjectInfo.ObjectMap["badge_icon"] = badgeInfo.Icon
+		item.ObjectInfo.ObjectMap["badge_level"] = strconv.Itoa(int(badgeInfo.Level))
+	}
 }

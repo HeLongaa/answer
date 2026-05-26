@@ -70,6 +70,28 @@
     overflow: hidden;
     max-width: calc(100% - 40px);
   }
+
+  .tag-selector-select-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 26px;
+    padding: 0 0.2rem;
+    color: var(--bs-secondary-color);
+    background: transparent;
+    border: 0;
+    line-height: 1.4;
+  }
+
+  .tag-selector-select-trigger:hover,
+  .tag-selector-select-trigger:focus {
+    color: var(--bs-body-color);
+    outline: 0;
+  }
+
+  .tag-selector-select-trigger .br {
+    font-size: 0.8rem;
+  }
 }
 
 .tag-selector-wrap--focus {

@@ -27,10 +27,10 @@ import classNames from 'classnames';
 
 import { usePageTags, usePromptWithUnload } from '@/hooks';
 import { Editor, EditorRef } from '@/components';
-import { loggedUserInfoStore } from '@/stores';
 import type * as Type from '@/common/interface';
 import { TAG_SLUG_NAME_MAX_LENGTH } from '@/common/constants';
 import { useTagInfo, modifyTag, useQueryRevisions } from '@/services';
+import { guard } from '@/utils';
 
 interface FormDataItem {
   displayName: Type.FormValue<string>;
@@ -62,7 +62,10 @@ const initFormData = {
 };
 
 const Index = () => {
-  const { role_id = 1 } = loggedUserInfoStore((state) => state.user);
+  const canEditTagSlugName = (() => {
+    const userState = guard.deriveLoginState();
+    return userState.isAdmin || userState.isModerator;
+  })();
 
   const { tagId } = useParams();
   const navigate = useNavigate();
@@ -283,7 +286,7 @@ const Index = () => {
               <Form.Control
                 value={formData.displayName.value}
                 isInvalid={formData.displayName.isInvalid}
-                disabled={role_id !== 2 && role_id !== 3}
+                disabled={!canEditTagSlugName}
                 onChange={handleDisplayNameChange}
               />
 
@@ -298,7 +301,7 @@ const Index = () => {
               <Form.Control
                 value={formData.slugName.value}
                 isInvalid={formData.slugName.isInvalid}
-                disabled={role_id !== 2 && role_id !== 3}
+                disabled={!canEditTagSlugName}
                 onChange={handleSlugNameChange}
               />
               <Form.Text as="div">

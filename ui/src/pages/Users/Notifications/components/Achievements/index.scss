@@ -23,4 +23,17 @@
     width: 60px;
     flex: none;
   }
+
+  .achievement-badge-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+
+    img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+  }
 }

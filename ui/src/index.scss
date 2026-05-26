@@ -21,6 +21,7 @@
 @import '~bootstrap/scss/bootstrap';
 @import '~bootstrap-icons';
 @import 'common/color';
+@import 'common/liquid-glass';
 
 .bg-gray-300 {
   background-color: var(--an-gray-300);
@@ -78,6 +79,46 @@ img[src=''] {
   &::after {
     display: none;
   }
+}
+
+.post-operate-dropdown {
+  .dropdown-menu {
+    min-width: 116px;
+    padding: 0.35rem;
+    border: 1px solid rgba(110, 126, 148, 0.18);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow:
+      0 14px 34px rgba(18, 32, 54, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(18px) saturate(1.35);
+    -webkit-backdrop-filter: blur(18px) saturate(1.35);
+    transform-origin: top right;
+  }
+
+  .dropdown-item {
+    border-radius: 10px;
+    color: #2f3d50;
+  }
+
+  .dropdown-item:hover,
+  .dropdown-item:focus {
+    color: var(--bs-primary);
+    background: rgba(var(--bs-primary-rgb), 0.08);
+  }
+}
+
+.tag-list-card {
+  cursor: pointer;
+}
+
+.tag-list-card:focus-visible {
+  outline: 0;
+  border-color: rgba(var(--bs-primary-rgb), 0.36);
+  box-shadow:
+    var(--an-glass-shadow-hover),
+    var(--an-glass-inner-shadow),
+    0 0 0 3px rgba(var(--bs-primary-rgb), 0.12);
 }
 
 .unread-dot {

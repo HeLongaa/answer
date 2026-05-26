@@ -119,6 +119,19 @@ func (ur *userNotificationConfigRepo) GetByUsersAndSource(
 	ctx context.Context, userIDs []string, source constant.NotificationSource) (
 	[]*entity.UserNotificationConfig, error) {
 	var configs []*entity.UserNotificationConfig
+	err := ur.data.DB.Context(ctx).In("user_id", userIDs).
+		Find(&configs, &entity.UserNotificationConfig{Source: string(source)})
+	if err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
+	}
+	return configs, nil
+}
+
+// GetEnabledByUsersAndSource get enabled notification config by user ids and source
+func (ur *userNotificationConfigRepo) GetEnabledByUsersAndSource(
+	ctx context.Context, userIDs []string, source constant.NotificationSource) (
+	[]*entity.UserNotificationConfig, error) {
+	var configs []*entity.UserNotificationConfig
 	err := ur.data.DB.Context(ctx).UseBool("enabled").In("user_id", userIDs).
 		Find(&configs, &entity.UserNotificationConfig{Source: string(source), Enabled: true})
 	if err != nil {

@@ -26,7 +26,7 @@ import '@/common/sideNavLayout.scss';
 
 const Index: FC = () => {
   return (
-    <div className="d-flex">
+    <div className="d-flex side-nav-layout-page">
       <div
         className="position-sticky px-3 border-end pt-4 d-none d-lg-block"
         id="pcSideNav">

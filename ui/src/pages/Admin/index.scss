@@ -38,3 +38,77 @@
 .table tr th {
   white-space: nowrap;
 }
+
+#adminSideNav {
+  max-width: 208px;
+}
+
+#adminSideNav .admin-side-site-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: calc(100% + 2rem);
+  min-height: 58px;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  margin-bottom: 18px;
+  border-bottom: 1px solid rgba(110, 126, 148, 0.14);
+  border-radius: 0;
+  color: #25364d;
+  background: transparent;
+  box-shadow: none;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+#adminSideNav .admin-side-site-brand:hover {
+  color: var(--bs-primary);
+}
+
+#adminSideNav .admin-side-brand-logo {
+  flex: none;
+  max-width: 32px;
+  max-height: 24px;
+  object-fit: contain;
+}
+
+#adminSideNav .admin-side-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--bs-primary);
+  background: rgba(var(--bs-primary-rgb), 0.1);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+#adminSideNav .admin-side-brand-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#adminSideNav .admin-back-site {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  margin-bottom: 0.75rem;
+  border-radius: 999px;
+  color: #607087;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+#adminSideNav .admin-back-site:hover {
+  color: var(--bs-primary);
+  background: rgba(255, 255, 255, 0.46);
+}

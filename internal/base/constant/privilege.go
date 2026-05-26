@@ -64,6 +64,32 @@ const (
 )
 
 var (
+	RankRoleOnlyPrivilegeKeys = map[string]bool{
+		RankTagAddKey:                    true,
+		RankTagEditKey:                   true,
+		RankQuestionEditKey:              true,
+		RankQuestionEditWithoutReviewKey: true,
+		RankAnswerEditWithoutReviewKey:   true,
+		RankQuestionAuditKey:             true,
+		RankAnswerAuditKey:               true,
+		RankTagAuditKey:                  true,
+		RankTagEditWithoutReviewKey:      true,
+		RankTagSynonymKey:                true,
+	}
+
+	RankRoleOnlyPermissionKeys = map[string]bool{
+		RankQuestionEditKey[len("rank."):]:              true,
+		RankTagAddKey[len("rank."):]:                    true,
+		RankTagEditKey[len("rank."):]:                   true,
+		RankQuestionEditWithoutReviewKey[len("rank."):]: true,
+		RankAnswerEditWithoutReviewKey[len("rank."):]:   true,
+		RankQuestionAuditKey[len("rank."):]:             true,
+		RankAnswerAuditKey[len("rank."):]:               true,
+		RankTagAuditKey[len("rank."):]:                  true,
+		RankTagEditWithoutReviewKey[len("rank."):]:      true,
+		RankTagSynonymKey[len("rank."):]:                true,
+	}
+
 	RankAllPrivileges = []*Privilege{
 		{Label: reason.RankQuestionAddLabel, Key: RankQuestionAddKey},
 		{Label: reason.RankAnswerAddLabel, Key: RankAnswerAddKey},
@@ -76,16 +102,6 @@ var (
 		{Label: reason.RankQuestionVoteDownLabel, Key: RankQuestionVoteDownKey},
 		{Label: reason.RankAnswerVoteDownLabel, Key: RankAnswerVoteDownKey},
 		{Label: reason.RankInviteSomeoneToAnswerLabel, Key: RankInviteSomeoneToAnswerKey},
-		{Label: reason.RankTagAddLabel, Key: RankTagAddKey},
-		{Label: reason.RankTagEditLabel, Key: RankTagEditKey},
-		{Label: reason.RankQuestionEditLabel, Key: RankQuestionEditKey},
 		{Label: reason.RankAnswerEditLabel, Key: RankAnswerEditKey},
-		{Label: reason.RankQuestionEditWithoutReviewLabel, Key: RankQuestionEditWithoutReviewKey},
-		{Label: reason.RankAnswerEditWithoutReviewLabel, Key: RankAnswerEditWithoutReviewKey},
-		{Label: reason.RankQuestionAuditLabel, Key: RankQuestionAuditKey},
-		{Label: reason.RankAnswerAuditLabel, Key: RankAnswerAuditKey},
-		{Label: reason.RankTagAuditLabel, Key: RankTagAuditKey},
-		{Label: reason.RankTagEditWithoutReviewLabel, Key: RankTagEditWithoutReviewKey},
-		{Label: reason.RankTagSynonymLabel, Key: RankTagSynonymKey},
 	}
 )

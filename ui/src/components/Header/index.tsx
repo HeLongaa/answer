@@ -17,10 +17,16 @@
  * under the License.
  */
 
-import { FC, memo, useState, useEffect } from 'react';
-import { Navbar, Nav, Button } from 'react-bootstrap';
+import { CSSProperties, FC, memo, useState, useEffect, useRef } from 'react';
+import { Navbar, Nav } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import { Link, NavLink, useLocation, useMatch } from 'react-router-dom';
+import {
+  Link,
+  NavLink,
+  useLocation,
+  useMatch,
+  useNavigate,
+} from 'react-router-dom';
 
 import classnames from 'classnames';
 
@@ -37,12 +43,12 @@ import { logout, useQueryNotificationStatus } from '@/services';
 import { Icon, MobileSideNav } from '@/components';
 
 import NavItems from './components/NavItems';
-import SearchInput from './components/SearchInput';
 
 import './index.scss';
 
 const Header: FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, clear: clearUserStore } = loggedUserInfoStore();
   const { t } = useTranslation();
   const siteInfo = siteInfoStore((state) => state.siteInfo);
@@ -51,8 +57,9 @@ const Header: FC = () => {
   const { updateReview } = sideNavStore();
   const { data: redDot } = useQueryNotificationStatus();
   const [showMobileSideNav, setShowMobileSideNav] = useState(false);
-
-  const [showMobileSearchInput, setShowMobileSearchInput] = useState(false);
+  const [showHeaderSearch, setShowHeaderSearch] = useState(false);
+  const [headerSearch, setHeaderSearch] = useState('');
+  const headerSearchRef = useRef<HTMLDivElement>(null);
   /**
    * Automatically append `tag` information when creating a question
    */
@@ -77,9 +84,79 @@ const Header: FC = () => {
   };
 
   useEffect(() => {
-    setShowMobileSearchInput(false);
     setShowMobileSideNav(false);
+    setShowHeaderSearch(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!showHeaderSearch) {
+      return undefined;
+    }
+
+    const handleClickOutside = (evt: PointerEvent) => {
+      if (
+        evt.target instanceof Element &&
+        evt.target.closest('.header-search-popover, .header-search-trigger')
+      ) {
+        return;
+      }
+      setShowHeaderSearch(false);
+    };
+
+    const handleEscape = (evt: KeyboardEvent) => {
+      if (evt.key === 'Escape') {
+        setShowHeaderSearch(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('pointerdown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [showHeaderSearch]);
+
+  const handleHeaderSearch = (evt) => {
+    evt.preventDefault();
+    const keyword = headerSearch.trim();
+    if (!keyword) {
+      return;
+    }
+    setShowHeaderSearch(false);
+    navigate(`/search?q=${encodeURIComponent(keyword)}`);
+  };
+
+  const isUserSideNavPage =
+    location.pathname === '/users' ||
+    location.pathname.startsWith('/users/settings') ||
+    location.pathname.startsWith('/users/notifications') ||
+    /^\/users\/[^/]+(\/(answers|questions|bookmarks|reputation|badges|votes))?$/.test(
+      location.pathname,
+    );
+  const isCommunityPage =
+    location.pathname.startsWith('/questions') ||
+    location.pathname.startsWith('/tags') ||
+    isUserSideNavPage ||
+    location.pathname.startsWith('/badges') ||
+    location.pathname.startsWith('/review');
+  const isSideNavPage =
+    location.pathname === '/' ||
+    isCommunityPage ||
+    location.pathname.startsWith('/admin');
+  const isAuthFlowPage =
+    location.pathname === '/users/login' ||
+    location.pathname === '/users/register' ||
+    location.pathname === '/users/logout' ||
+    location.pathname === '/users/account-recovery' ||
+    location.pathname === '/users/change-email' ||
+    location.pathname === '/users/password-reset' ||
+    location.pathname.startsWith('/users/account-activation') ||
+    location.pathname === '/users/confirm-new-email' ||
+    location.pathname === '/users/confirm-email' ||
+    location.pathname === '/users/auth-landing' ||
+    location.pathname === '/users/account-suspended' ||
+    location.pathname.startsWith('/user-center/');
 
   let navbarStyle = 'theme-light';
   let themeMode = 'light';
@@ -94,7 +171,6 @@ const Header: FC = () => {
     const handleResize = () => {
       if (window.innerWidth >= 1199.9) {
         setShowMobileSideNav(false);
-        setShowMobileSearchInput(false);
       }
     };
 
@@ -104,68 +180,108 @@ const Header: FC = () => {
     };
   }, []);
 
+  if (isAuthFlowPage) {
+    return null;
+  }
+
   return (
     <Navbar
-      data-bs-theme={themeMode}
+      data-bs-theme="light"
       expand="xl"
-      className={classnames('sticky-top', navbarStyle)}
-      style={{
-        backgroundColor: theme_config[theme].navbar_style,
-      }}
+      className={classnames('sticky-top', navbarStyle, 'liquid-header', {
+        'mobile-side-nav-open': showMobileSideNav,
+      })}
+      style={
+        {
+          '--an-navbar-accent': theme_config[theme].navbar_style,
+        } as CSSProperties
+      }
       id="header">
       <div
         className={classnames(
-          'w-100 d-flex align-items-center',
-          layout === 'Fixed-width' ? 'container-xxl fixed-width' : 'px-3',
+          'w-100 d-flex align-items-center header-shell',
+          layout === 'Fixed-width' ? 'container-xxl fixed-width' : '',
         )}>
         <Navbar.Toggle
-          className="answer-navBar me-2"
+          className={classnames('answer-navBar me-2 d-lg-none', {
+            'd-none': !isSideNavPage,
+          })}
           onClick={() => {
             setShowMobileSideNav(!showMobileSideNav);
-            setShowMobileSearchInput(false);
           }}
         />
 
         <Navbar.Brand
           to="/"
           as={Link}
-          className="lh-1 me-0 me-sm-5 p-0 nav-text">
-          {brandingInfo.logo ? (
-            <>
-              <img
-                className="d-none d-xl-block logo me-0"
-                src={brandingInfo.logo}
-                alt={siteInfo.name}
-              />
-
-              <img
-                className="xl-none logo me-0"
-                src={brandingInfo.mobile_logo || brandingInfo.logo}
-                alt={siteInfo.name}
-              />
-            </>
+          className={classnames('lh-1 me-0 me-sm-5 p-0 nav-text', {
+            'side-nav-brand-hidden': isSideNavPage,
+            'brand-has-logo': brandingInfo.logo || brandingInfo.mobile_logo,
+          })}>
+          {brandingInfo.logo || brandingInfo.mobile_logo ? (
+            <img
+              className="logo"
+              src={brandingInfo.mobile_logo || brandingInfo.logo}
+              alt={siteInfo.name}
+            />
           ) : (
             <span>{siteInfo.name}</span>
           )}
         </Navbar.Brand>
 
-        <SearchInput className="d-none d-lg-block maxw-560" />
+        <div
+          className="header-center d-none d-lg-flex mx-auto"
+          ref={headerSearchRef}>
+          <div className="header-segmented-nav" aria-label="Primary navigation">
+            <NavLink
+              to="/"
+              end
+              className={classnames('segment-item', {
+                active: location.pathname === '/',
+              })}>
+              CHAT
+            </NavLink>
+            <NavLink
+              to="/questions"
+              className={classnames('segment-item', {
+                active: isCommunityPage,
+              })}>
+              社区
+            </NavLink>
+            <button type="button" className="segment-item" aria-disabled="true">
+              支持
+            </button>
+            <button
+              type="button"
+              className="segment-item header-upgrade-segment"
+              aria-disabled="true">
+              <Icon name="music-note-beamed" />
+              <span>升级套餐</span>
+            </button>
+          </div>
 
-        <Nav className="d-block d-lg-none me-2 ms-auto">
-          <Button
-            variant="link"
-            onClick={() => {
-              setShowMobileSideNav(false);
-              setShowMobileSearchInput(!showMobileSearchInput);
-            }}
-            className="p-0 btn-no-border icon-link nav-link d-flex align-items-center justify-content-center">
-            <Icon name="search" className="lh-1 fs-4" />
-          </Button>
-        </Nav>
+          {showHeaderSearch && (
+            <form
+              className="header-search-popover"
+              onSubmit={handleHeaderSearch}>
+              <Icon name="search" className="header-search-icon" />
+              <input
+                value={headerSearch}
+                onChange={(evt) => setHeaderSearch(evt.target.value)}
+                className="header-search-input"
+                placeholder="搜索社区内容"
+                type="search"
+              />
+              <button type="submit" className="header-search-submit">
+                搜索
+              </button>
+            </form>
+          )}
+        </div>
 
         {/* pc nav */}
         {user?.username ? (
-          <Nav className="d-flex align-items-center flex-nowrap flex-row">
+          <Nav className="d-flex align-items-center flex-nowrap flex-row ms-auto ms-lg-0">
             <Nav.Item className="me-2 d-block d-xl-none">
               <NavLink
                 to={askUrl}
@@ -177,10 +293,26 @@ const Header: FC = () => {
             <Nav.Item className="me-2 d-none d-xl-block">
               <NavLink
                 to={askUrl}
-                className="nav-link d-flex align-items-center text-capitalize text-nowrap">
-                <Icon name="plus-lg" className="me-2 lh-1 fs-4" />
-                <span>{t('btns.create')}</span>
+                title={t('btns.create')}
+                className="icon-link nav-link d-flex align-items-center justify-content-center p-0">
+                <Icon name="plus-lg" className="lh-1 fs-4" />
               </NavLink>
+            </Nav.Item>
+
+            <Nav.Item className="me-2 d-block">
+              <button
+                type="button"
+                aria-label="搜索"
+                onClick={() => setShowHeaderSearch((show) => !show)}
+                className={classnames(
+                  'p-0 btn-no-border icon-link nav-link d-flex align-items-center justify-content-center',
+                  'header-search-trigger',
+                  {
+                    active: showHeaderSearch || location.pathname === '/search',
+                  },
+                )}>
+                <Icon name="search" className="lh-1 fs-4" />
+              </button>
             </Nav.Item>
 
             <NavItems redDot={redDot} userInfo={user} logOut={handleLogout} />
@@ -188,20 +320,14 @@ const Header: FC = () => {
         ) : (
           <>
             <Link
-              className={classnames('me-2 btn btn-link', {
-                'link-light': navbarStyle === 'theme-dark',
-                'link-primary': navbarStyle !== 'theme-dark',
-              })}
+              className="me-2 btn btn-link an-header-login"
               onClick={() => floppyNavigation.storageLoginRedirect()}
               to={userCenter.getLoginUrl()}>
               {t('btns.login')}
             </Link>
             {loginSetting.allow_new_registrations && (
               <Link
-                className={classnames(
-                  'btn',
-                  navbarStyle === 'theme-dark' ? 'btn-light' : 'btn-primary',
-                )}
+                className="btn btn-primary an-header-primary"
                 to={userCenter.getSignUpUrl()}>
                 {t('btns.signup')}
               </Link>
@@ -210,13 +336,27 @@ const Header: FC = () => {
         )}
       </div>
 
-      {showMobileSearchInput && (
-        <div className="w-100 px-3 mt-2 d-block d-lg-none">
-          <SearchInput />
-        </div>
+      {showHeaderSearch && (
+        <form
+          className="header-search-popover header-search-popover-mobile d-lg-none"
+          onSubmit={handleHeaderSearch}>
+          <Icon name="search" className="header-search-icon" />
+          <input
+            value={headerSearch}
+            onChange={(evt) => setHeaderSearch(evt.target.value)}
+            className="header-search-input"
+            placeholder="搜索社区内容"
+            type="search"
+          />
+          <button type="submit" className="header-search-submit">
+            搜索
+          </button>
+        </form>
       )}
 
-      <MobileSideNav show={showMobileSideNav} onHide={setShowMobileSideNav} />
+      {isSideNavPage && (
+        <MobileSideNav show={showMobileSideNav} onHide={setShowMobileSideNav} />
+      )}
     </Navbar>
   );
 };

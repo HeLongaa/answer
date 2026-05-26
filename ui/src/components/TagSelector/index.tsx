@@ -18,18 +18,18 @@
  */
 
 /* eslint-disable no-nested-ternary */
-import { FC, useState, useEffect, useRef, useCallback } from 'react';
+import { FC, useState, useEffect, useRef } from 'react';
 import { Dropdown, Button, Form } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
 
-import debounce from 'lodash/debounce';
 import { marked } from 'marked';
 import classNames from 'classnames';
 
 import { useTagModal, useToast } from '@/hooks';
 import type * as Type from '@/common/interface';
 import { queryTags, useUserPermission } from '@/services';
-import { writeSettingStore } from '@/stores';
+import { loggedUserInfoStore, writeSettingStore } from '@/stores';
+import { sortTagsForDisplay } from '@/utils';
 
 // import { OutsideClickListener } from '@/components';
 
@@ -47,9 +47,12 @@ interface IProps {
   tagStyleMode?: 'default' | 'simple';
   formText?: string;
   errMsg?: string;
+  selectOnly?: boolean;
+  excludeReservedForNormalUser?: boolean;
 }
 
 let timer;
+let fetchTimer;
 
 const TagSelector: FC<IProps> = ({
   value = [],
@@ -63,18 +66,22 @@ const TagSelector: FC<IProps> = ({
   formText = '',
   tagStyleMode = 'default',
   errMsg = '',
+  selectOnly = false,
+  excludeReservedForNormalUser = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [initialized, setInitialized] = useState(false);
   const [focusState, setFocusState] = useState(autoFocus);
   const [showMenu, setShowMenu] = useState(false);
+  const [isLoadingTags, setIsLoadingTags] = useState(false);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [repeatIndex, setRepeatIndex] = useState(-1);
   const [searchValue, setSearchValue] = useState<string>('');
   const [tags, setTags] = useState<Type.Tag[] | null>([]);
   const [requiredTags, setRequiredTags] = useState<Type.Tag[] | null>(null);
   const writeInfo = writeSettingStore((state) => state.write);
+  const { role_id = 1 } = loggedUserInfoStore((state) => state.user);
   const { t } = useTranslation('translation', { keyPrefix: 'tag_selector' });
   const { data: userPermission } = useUserPermission('tag.add');
   const canAddTag =
@@ -107,9 +114,19 @@ const TagSelector: FC<IProps> = ({
     },
   });
 
+  const canUseReservedTag = role_id === 2 || role_id === 3;
+
   const filterTags = (result) => {
     const tagArray: Type.Tag[] = [];
     result?.forEach((item) => {
+      if (
+        excludeReservedForNormalUser &&
+        !canUseReservedTag &&
+        typeof item !== 'string' &&
+        item.reserved
+      ) {
+        return;
+      }
       const findIndex = value.findIndex((v) => {
         const tagName1 = v.slug_name.toLowerCase();
         const tagName2 =
@@ -124,7 +141,7 @@ const TagSelector: FC<IProps> = ({
         tagArray.push(typeof item === 'string' ? { slug_name: item } : item);
       }
     });
-    return tagArray;
+    return sortTagsForDisplay(tagArray);
   };
 
   const handleMenuShow = (bol: boolean) => {
@@ -139,6 +156,32 @@ const TagSelector: FC<IProps> = ({
     }
   };
 
+  const fetchTags = (str) => {
+    clearTimeout(fetchTimer);
+    if (selectOnly) {
+      setIsLoadingTags(true);
+    }
+    fetchTimer = setTimeout(() => {
+      if (!showRequiredTag && !str) {
+        setTags([]);
+        setIsLoadingTags(false);
+        return;
+      }
+      queryTags(str)
+        .then((res) => {
+          const tagArray: Type.Tag[] = filterTags(res || []);
+          if (str === '') {
+            setRequiredTags(res);
+          }
+          handleMenuShow(selectOnly || tagArray.length > 0);
+          setTags(tagArray);
+        })
+        .finally(() => {
+          setIsLoadingTags(false);
+        });
+    }, 200);
+  };
+
   const handleTagSelectorFocus = () => {
     setFocusState(true);
     inputRef.current?.focus();
@@ -149,24 +192,6 @@ const TagSelector: FC<IProps> = ({
     setCurrentIndex(0);
     handleMenuShow(false);
   };
-
-  const fetchTags = useCallback(
-    debounce((str) => {
-      if (!showRequiredTag && !str) {
-        setTags([]);
-        return;
-      }
-      queryTags(str).then((res) => {
-        const tagArray: Type.Tag[] = filterTags(res || []);
-        if (str === '') {
-          setRequiredTags(res);
-        }
-        handleMenuShow(tagArray.length > 0);
-        setTags(tagArray);
-      });
-    }, 400),
-    [],
-  );
 
   const resetSearch = () => {
     setCurrentIndex(0);
@@ -215,6 +240,9 @@ const TagSelector: FC<IProps> = ({
   };
 
   const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (selectOnly) {
+      return;
+    }
     const searchStr = e.currentTarget.value.replace(';', '');
     onChange?.([...value]);
     setSearchValue(searchStr);
@@ -284,10 +312,20 @@ const TagSelector: FC<IProps> = ({
   };
 
   const handleClickToggle = () => {
-    const menuHasContent =
-      (tags && tags?.length > 0) ||
-      (searchValue && tags?.length === 0) ||
-      (searchValue && !hiddenCreateBtn);
+    if (selectOnly) {
+      if (showMenu) {
+        handleTagSelectorBlur();
+        return;
+      }
+      setFocusState(true);
+      fetchTags('');
+      return;
+    }
+    const menuHasContent = selectOnly
+      ? tags && tags?.length > 0
+      : (tags && tags?.length > 0) ||
+        (searchValue && tags?.length === 0) ||
+        (searchValue && !hiddenCreateBtn);
     if (canAddTag && menuHasContent) {
       handleMenuShow(true);
     } else {
@@ -359,7 +397,9 @@ const TagSelector: FC<IProps> = ({
       }
 
       if ((tags && tags?.length < 5) || maxTagLength === 0) {
-        inputRef.current?.focus();
+        if (!selectOnly) {
+          inputRef.current?.focus();
+        }
       }
     }
   }, [focusState, tags, hiddenCreateBtn, searchValue, maxTagLength]);
@@ -391,9 +431,9 @@ const TagSelector: FC<IProps> = ({
           focusState ? 'tag-selector-wrap--focus' : '',
           isInvalid ? 'is-invalid' : '',
         )}
-        onClick={handleTagSelectorFocus}
+        onClick={selectOnly ? undefined : handleTagSelectorFocus}
         onKeyDown={handleKeyDown}>
-        <div onClick={handleClickToggle}>
+        <div onClick={selectOnly ? undefined : handleClickToggle}>
           <div
             className="d-flex flex-wrap m-n1"
             style={{ padding: '0.375rem 0.75rem' }}>
@@ -420,7 +460,18 @@ const TagSelector: FC<IProps> = ({
                 </span>
               );
             })}
-            {canAddTag ? (
+            {canAddTag && selectOnly ? (
+              <button
+                type="button"
+                className="tag-selector-select-trigger m-1"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleClickToggle();
+                }}>
+                {t('select_placeholder')}
+                <i className="br bi-chevron-down" />
+              </button>
+            ) : canAddTag ? (
               <Form.Control
                 // autoFocus
                 autoComplete="off"
@@ -463,6 +514,16 @@ const TagSelector: FC<IProps> = ({
               </Dropdown.Item>
             );
           })}
+          {selectOnly && isLoadingTags && (
+            <Dropdown.Item disabled className="text-secondary">
+              {t('loading')}
+            </Dropdown.Item>
+          )}
+          {selectOnly && !isLoadingTags && tags?.length === 0 && (
+            <Dropdown.Item disabled className="text-secondary">
+              {t('no_selectable_tags')}
+            </Dropdown.Item>
+          )}
           {searchValue && tags?.length === 0 && (
             <Dropdown.Item disabled className="text-secondary">
               {t('no_result')}

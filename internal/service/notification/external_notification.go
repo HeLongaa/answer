@@ -43,6 +43,7 @@ type ExternalNotificationService struct {
 	emailService               *export.EmailService
 	userRepo                   usercommon.UserRepo
 	notificationQueueService   noticequeue.ExternalService
+	inboxNotificationQueue     noticequeue.Service
 	userExternalLoginRepo      user_external_login.UserExternalLoginRepo
 	siteInfoService            siteinfo_common.SiteInfoCommonService
 }
@@ -54,6 +55,7 @@ func NewExternalNotificationService(
 	emailService *export.EmailService,
 	userRepo usercommon.UserRepo,
 	notificationQueueService noticequeue.ExternalService,
+	inboxNotificationQueue noticequeue.Service,
 	userExternalLoginRepo user_external_login.UserExternalLoginRepo,
 	siteInfoService siteinfo_common.SiteInfoCommonService,
 ) *ExternalNotificationService {
@@ -64,6 +66,7 @@ func NewExternalNotificationService(
 		emailService:               emailService,
 		userRepo:                   userRepo,
 		notificationQueueService:   notificationQueueService,
+		inboxNotificationQueue:     inboxNotificationQueue,
 		userExternalLoginRepo:      userExternalLoginRepo,
 		siteInfoService:            siteInfoService,
 	}

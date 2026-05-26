@@ -17,53 +17,22 @@
  * under the License.
  */
 
-.main-mx-with {
-  width: 100%;
-  max-width: 1072px;
-}
+import type { TagBase } from '@/common/interface';
 
-.answer-container {
-  min-height: calc(100vh - 53px - 62px);
-}
-
-.page-right-side {
-  flex: none;
-  width: 300px;
-  box-sizing: content-box;
-}
-
-.side-nav-layout-page {
-  min-height: 100vh;
-  margin-top: -64px;
-
-  > .flex-fill {
-    padding-top: 64px;
-  }
-}
-
-// lg
-@media screen and (max-width: 1199.9px) {
-  .main-mx-with {
-    padding-left: 12px;
-    padding-right: 12px;
+export const sortTagsForDisplay = <T extends TagBase>(
+  tags?: T[] | null,
+): T[] => {
+  if (!Array.isArray(tags)) {
+    return [];
   }
 
-  .page-main {
-    max-width: 100%;
-  }
-  .page-right-side {
-    width: 100%;
-    box-sizing: border-box;
-  }
-}
-
-@media screen and (max-width: 991.9px) {
-  .side-nav-layout-page {
-    min-height: calc(100vh - 64px);
-    margin-top: 0;
-
-    > .flex-fill {
-      padding-top: 0;
+  return [...tags].sort((a, b) => {
+    if (Boolean(a.reserved) !== Boolean(b.reserved)) {
+      return a.reserved ? -1 : 1;
     }
-  }
-}
+    if (Boolean(a.recommend) !== Boolean(b.recommend)) {
+      return a.recommend ? -1 : 1;
+    }
+    return 0;
+  });
+};

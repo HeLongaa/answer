@@ -102,7 +102,7 @@ func (fs *FollowService) UpdateFollowTags(ctx context.Context, req *schema.Updat
 	}
 
 	// new follow
-	for _, tagSlugName := range req.SlugNameList {
+	for tagSlugName := range newTagMapping {
 		if !oldTagMapping[tagSlugName] {
 			tagInfo, exist, err := fs.tagRepo.GetTagBySlugName(ctx, tagSlugName)
 			if err != nil {

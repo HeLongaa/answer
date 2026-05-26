@@ -32,7 +32,7 @@ import {
 } from '@/components';
 import Pattern from '@/common/pattern';
 import type { SearchResItem } from '@/common/interface';
-import { escapeRemove } from '@/utils';
+import { escapeRemove, sortTagsForDisplay } from '@/utils';
 
 interface Props {
   data: SearchResItem;
@@ -106,7 +106,7 @@ const Index: FC<Props> = ({ data }) => {
         </p>
       )}
 
-      {data.object?.tags?.map((item) => {
+      {sortTagsForDisplay(data.object?.tags).map((item) => {
         return <Tag key={item.slug_name} className="me-1" data={item} />;
       })}
     </ListGroupItem>

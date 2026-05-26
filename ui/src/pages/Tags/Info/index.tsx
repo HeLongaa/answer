@@ -25,18 +25,12 @@ import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 
 import { usePageTags } from '@/hooks';
-import { Tag, TagSelector, FormatTime, Modal, htmlRender } from '@/components';
-import {
-  useTagInfo,
-  useQuerySynonymsTags,
-  saveSynonymsTags,
-  deleteTag,
-  editCheck,
-  unDeleteTag,
-  mergeTag,
-} from '@/services';
+import { Tag, TagSelector, FormatTime, htmlRender } from '@/components';
+import { useTagInfo, saveSynonymsTags } from '@/services';
 import { pathFactory } from '@/router/pathFactory';
+import { sortTagsForDisplay } from '@/utils';
 import { loggedUserInfoStore, toastStore } from '@/stores';
+import { useTagManageActions } from '../useTagManageActions';
 
 import MergeTagModal from './components/MergeTagModal';
 
@@ -51,11 +45,17 @@ const TagIntroduction = () => {
   });
   const { t } = useTranslation('translation', { keyPrefix: 'tag_info' });
   const navigate = useNavigate();
-  const { data: synonymsData, mutate } = useQuerySynonymsTags(
-    tagInfo?.tag_id,
-    tagInfo?.status,
-  );
-  const [showMergeModal, setShowMergeModal] = useState(false);
+  const {
+    showMergeModal,
+    setShowMergeModal,
+    synonymsData,
+    mutateSynonymsData,
+    onAction,
+    handleMergeConfirm,
+  } = useTagManageActions({
+    tagInfo,
+    refreshTagInfo,
+  });
 
   let pageTitle = '';
   if (tagInfo) {
@@ -110,95 +110,18 @@ const TagIntroduction = () => {
       tag_id: tagInfo?.tag_id,
       synonym_tag_list: synonymsData?.synonyms,
     }).then(() => {
-      mutate();
+      mutateSynonymsData();
       setEditState(false);
     });
   };
 
   const handleTagsChange = (value) => {
-    mutate(
+    mutateSynonymsData(
       { ...synonymsData, synonyms: [...value] },
       {
         revalidate: false,
       },
     );
-  };
-
-  const handleEditTag = () => {
-    editCheck(tagInfo?.tag_id).then(() => {
-      navigate(pathFactory.tagEdit(tagInfo?.tag_id));
-    });
-  };
-  const handleDeleteTag = () => {
-    if (synonymsData?.synonyms && synonymsData.synonyms.length > 0) {
-      Modal.confirm({
-        title: t('delete.title'),
-        content: t('delete.tip_with_synonyms'),
-        showConfirm: false,
-        cancelText: t('delete.close'),
-      });
-      return;
-    }
-    if (tagInfo.question_count > 0) {
-      Modal.confirm({
-        title: t('delete.title'),
-        content: t('delete.tip_with_posts'),
-        showConfirm: false,
-        cancelText: t('delete.close'),
-      });
-      return;
-    }
-
-    Modal.confirm({
-      title: t('delete.title'),
-      content: t('delete.tip'),
-      confirmText: t('delete', { keyPrefix: 'btns' }),
-      confirmBtnVariant: 'danger',
-      onConfirm: () => {
-        deleteTag(tagInfo.tag_id).then(() => {
-          navigate('/tags', { replace: true });
-        });
-      },
-    });
-  };
-  const handleMergeTag = () => {
-    setShowMergeModal(true);
-  };
-
-  const handleMergeConfirm = (sourceTagID: string, targetTagID: string) => {
-    mergeTag({ source_tag_id: sourceTagID, target_tag_id: targetTagID }).then(
-      () => {
-        setShowMergeModal(false);
-        navigate('/tags', { replace: true });
-      },
-    );
-  };
-
-  const onAction = (params) => {
-    if (params.action === 'edit') {
-      handleEditTag();
-    }
-    if (params.action === 'delete') {
-      handleDeleteTag();
-    }
-    if (params.action === 'merge') {
-      handleMergeTag();
-    }
-    if (params.action === 'undelete') {
-      Modal.confirm({
-        title: t('undelete_title', { keyPrefix: 'delete' }),
-        content: t('undelete_desc', { keyPrefix: 'delete' }),
-        cancelBtnVariant: 'link',
-        confirmBtnVariant: 'danger',
-        confirmText: t('undelete', { keyPrefix: 'btns' }),
-        onConfirm: () => {
-          unDeleteTag(tagInfo.tag_id).then(() => {
-            // undo
-            refreshTagInfo();
-          });
-        },
-      });
-    }
   };
 
   return (
@@ -308,7 +231,7 @@ const TagIntroduction = () => {
               {!isEdit &&
                 (synonymsData?.synonyms && synonymsData.synonyms.length > 0 ? (
                   <div className="m-n1">
-                    {synonymsData.synonyms.map((item) => {
+                    {sortTagsForDisplay(synonymsData.synonyms).map((item) => {
                       return (
                         <Tag key={item.tag_id} className="m-1" data={item} />
                       );

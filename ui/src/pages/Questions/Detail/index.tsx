@@ -179,7 +179,7 @@ const Index = () => {
   const initPage = (type: string) => {
     if (type === 'delete_question') {
       setTimeout(() => {
-        navigate('/', { replace: true });
+        navigate('/questions', { replace: true });
       }, 1000);
       return;
     }

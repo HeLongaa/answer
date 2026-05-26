@@ -20,6 +20,7 @@
 package controller
 
 import (
+	"github.com/apache/answer/internal/base/constant"
 	"github.com/apache/answer/internal/base/handler"
 	"github.com/apache/answer/internal/base/middleware"
 	"github.com/apache/answer/internal/schema"
@@ -60,9 +61,11 @@ func (u *PermissionController) GetPermission(ctx *gin.Context) {
 	}
 
 	lang := handler.GetLangByCtx(ctx)
+	isAdminModerator := middleware.GetUserIsAdminModerator(ctx)
 	mapping := make(map[string]*schema.GetPermissionResp, len(ops))
 	for i, action := range req.Actions {
-		t := &schema.GetPermissionResp{HasPermission: ops[i]}
+		hasPermission := ops[i] || (isAdminModerator && constant.RankRoleOnlyPermissionKeys[action])
+		t := &schema.GetPermissionResp{HasPermission: hasPermission}
 		t.TrTip(lang, requireRanks[i])
 		mapping[action] = t
 	}

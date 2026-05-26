@@ -226,7 +226,31 @@ func (ts *TagService) GetFollowingTags(ctx context.Context, userID string) (
 	if err != nil {
 		return nil, err
 	}
+	reservedTagList, err := ts.tagCommonService.GetReservedTagList(ctx)
+	if err != nil {
+		return nil, err
+	}
+	tagMap := make(map[string]bool, len(tagList)+len(reservedTagList))
+	mergedTagList := make([]*entity.Tag, 0, len(tagList)+len(reservedTagList))
+	for _, t := range reservedTagList {
+		followed, exists, err := ts.followCommon.IsFollowedWithCancelState(ctx, userID, t.ID)
+		if err != nil {
+			return nil, err
+		}
+		if exists && !followed {
+			continue
+		}
+		tagMap[t.SlugName] = true
+		mergedTagList = append(mergedTagList, t)
+	}
 	for _, t := range tagList {
+		if tagMap[t.SlugName] {
+			continue
+		}
+		tagMap[t.SlugName] = true
+		mergedTagList = append(mergedTagList, t)
+	}
+	for _, t := range mergedTagList {
 		tagInfo := &schema.GetFollowingTagsResp{
 			TagID:       t.ID,
 			SlugName:    t.SlugName,
@@ -499,9 +523,17 @@ func (ts *TagService) checkTagIsFollow(ctx context.Context, userID, tagID string
 	if len(userID) == 0 {
 		return false
 	}
-	followed, err := ts.followCommon.IsFollowed(ctx, userID, tagID)
+	followed, exists, err := ts.followCommon.IsFollowedWithCancelState(ctx, userID, tagID)
 	if err != nil {
 		log.Error(err)
 	}
-	return followed
+	if exists {
+		return followed
+	}
+	tagInfo, exist, err := ts.tagCommonService.GetTagByID(ctx, tagID)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+	return exist && tagInfo.Reserved
 }

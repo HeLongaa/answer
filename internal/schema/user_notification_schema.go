@@ -85,7 +85,7 @@ func (n *NotificationConfig) Format() {
 	}
 	if n.AllNewQuestionForFollowingTags.Key == "" {
 		n.AllNewQuestionForFollowingTags.Key = constant.EmailChannel
-		n.AllNewQuestionForFollowingTags.Enable = false
+		n.AllNewQuestionForFollowingTags.Enable = true
 	}
 }
 

@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 
 import { TagSelector, Tag } from '@/components';
 import { tryLoggedAndActivated } from '@/utils/guard';
+import { sortTagsForDisplay } from '@/utils';
 import { useFollowingTags, followTags } from '@/services';
 
 const Index: FC = () => {
@@ -88,7 +89,7 @@ const Index: FC = () => {
       <Card.Body>
         {followingTags?.length ? (
           <div className="m-n1">
-            {followingTags.map((item) => {
+            {sortTagsForDisplay(followingTags).map((item) => {
               const slugName = item?.slug_name;
               return <Tag key={slugName} className="m-1" data={item} />;
             })}

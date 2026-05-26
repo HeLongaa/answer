@@ -480,6 +480,8 @@ backend:
         other: upvoted comment
       invited_you_to_answer:
         other: invited you to answer
+      new_question_followed_tag:
+        other: posted a new question in a tag you follow
       earned_badge:
         other: You've earned the "{{.BadgeName}}" badge
   email_tpl:
@@ -1195,12 +1197,15 @@ ui:
     post_question&answer: Post your question and answer
   tag_selector:
     add_btn: Add tag
+    select_placeholder: Select tag
     create_btn: Create new tag
     search_tag: Search tag
     hint: Describe what your content is about, at least one tag is required.
     hint_zero_tags: Describe what your content is about.
     hint_more_than_one_tag: "Describe what your content is about, at least {{min_tags_number}} tags are required."
     no_result: No tags matched
+    no_selectable_tags: No selectable tags
+    loading: Loading...
     tag_required_text: Required tag (at least one)
   header:
     nav:
@@ -1632,6 +1637,7 @@ ui:
     answered: answered
     asked: asked
     closed: closed
+    pinned: Pinned
     follow_a_tag: Follow a tag
     more: More
   personal:
@@ -2482,5 +2488,3 @@ ui:
     copy: Copy to clipboard
     copied: Copied
     external_content_warning: External images/media are not displayed.
-
-

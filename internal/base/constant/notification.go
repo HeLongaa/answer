@@ -56,6 +56,8 @@ const (
 	NotificationYourCommentWasDeleted = "notification.action.your_comment_was_deleted"
 	// NotificationInvitedYouToAnswer invited you to answer
 	NotificationInvitedYouToAnswer = "notification.action.invited_you_to_answer"
+	// NotificationNewQuestionFollowedTag new question in followed tag
+	NotificationNewQuestionFollowedTag = "notification.action.new_question_followed_tag"
 	// NotificationEarnedBadge earned badge
 	NotificationEarnedBadge = "notification.action.earned_badge"
 )
@@ -99,5 +101,6 @@ var (
 		NotificationYourAnswerWasDeleted:   1,
 		NotificationYourCommentWasDeleted:  1,
 		NotificationInvitedYouToAnswer:     3,
+		NotificationNewQuestionFollowedTag: 1,
 	}
 )

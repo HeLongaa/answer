@@ -35,9 +35,9 @@ const Index: FC = () => {
     title: t('admin'),
   });
   return (
-    <div className="admin-container d-flex">
+    <div className="admin-container d-flex side-nav-layout-page">
       <div
-        className="position-sticky px-3 border-end pt-4 d-none d-xl-block"
+        className="position-sticky px-3 pt-4 d-none d-lg-block"
         id="pcSideNav">
         <AdminSideNav />
       </div>

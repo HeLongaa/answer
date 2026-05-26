@@ -24,6 +24,11 @@
   display: none;
 }
 
+.question-filter-dropdown .dropdown-menu {
+  min-width: 132px;
+  transform-origin: top right;
+}
+
 @media screen and (max-width: 768px) {
   .md-show {
     display: none !important;

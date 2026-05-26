@@ -32,7 +32,7 @@ import {
   ImgViewer,
   htmlRender,
 } from '@/components';
-import { scrollToDocTop } from '@/utils';
+import { scrollToDocTop, sortTagsForDisplay } from '@/utils';
 import type * as Type from '@/common/interface';
 import { ADMIN_LIST_STATUS } from '@/common/constants';
 import ApproveDropdown from '../ApproveDropdown';
@@ -206,7 +206,7 @@ const Index: FC<IProps> = ({ refreshCount }) => {
             <>
               <h5 className="mb-3">{flagItemData?.title}</h5>
               <div className="mb-4">
-                {flagItemData?.tags?.map((item) => {
+                {sortTagsForDisplay(flagItemData?.tags).map((item) => {
                   return (
                     <Tag key={item.slug_name} className="me-1" data={item} />
                   );

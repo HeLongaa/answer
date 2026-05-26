@@ -213,7 +213,7 @@ func (ns *NotificationCommon) AddNotification(ctx context.Context, msg *schema.N
 
 	go ns.SendNotificationToAllFollower(ctx, msg, questionID)
 
-	if msg.Type == schema.NotificationTypeInbox {
+	if msg.Type == schema.NotificationTypeInbox && !msg.NoNeedSyncToPlugin {
 		ns.syncNotificationToPlugin(ctx, objInfo, msg)
 	}
 	return nil

@@ -90,6 +90,8 @@ type NotificationMsg struct {
 	NotificationAction string
 	// if true no need to send notification to all followers
 	NoNeedPushAllFollow bool
+	// if true no need to sync notification to plugins
+	NoNeedSyncToPlugin bool
 	// extra info
 	ExtraInfo map[string]string
 }

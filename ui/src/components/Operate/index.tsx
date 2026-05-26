@@ -370,7 +370,10 @@ const Index: FC<IProps> = ({
           );
         })}
         {secondAction.length > 0 && (
-          <Dropdown className="ms-3 d-flex">
+          <Dropdown
+            align="end"
+            drop="down"
+            className="ms-3 d-flex post-operate-dropdown">
             <Dropdown.Toggle
               variant="link"
               size="sm"
@@ -378,7 +381,21 @@ const Index: FC<IProps> = ({
               className="link-secondary p-0 no-toggle">
               <Icon name="three-dots" />
             </Dropdown.Toggle>
-            <Dropdown.Menu>
+            <Dropdown.Menu
+              renderOnMount
+              popperConfig={{
+                strategy: 'fixed',
+                modifiers: [
+                  { name: 'flip', enabled: false },
+                  {
+                    name: 'preventOverflow',
+                    options: {
+                      boundary: 'viewport',
+                      padding: 16,
+                    },
+                  },
+                ],
+              }}>
               {secondAction.map((item) => {
                 return (
                   <Dropdown.Item
@@ -394,7 +411,10 @@ const Index: FC<IProps> = ({
       </div>
       <div className="md-hide">
         {memberActions.length > 0 && (
-          <Dropdown className="d-flex">
+          <Dropdown
+            align="end"
+            drop="down"
+            className="d-flex post-operate-dropdown">
             <Dropdown.Toggle
               variant="link"
               size="sm"
@@ -402,7 +422,21 @@ const Index: FC<IProps> = ({
               className="link-secondary no-toggle">
               <Icon name="three-dots" />
             </Dropdown.Toggle>
-            <Dropdown.Menu>
+            <Dropdown.Menu
+              renderOnMount
+              popperConfig={{
+                strategy: 'fixed',
+                modifiers: [
+                  { name: 'flip', enabled: false },
+                  {
+                    name: 'preventOverflow',
+                    options: {
+                      boundary: 'viewport',
+                      padding: 16,
+                    },
+                  },
+                ],
+              }}>
               <Share
                 type={type}
                 qid={qid}

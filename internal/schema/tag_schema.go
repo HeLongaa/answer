@@ -29,8 +29,9 @@ import (
 // SearchTagLikeReq get tag list all request
 type SearchTagLikeReq struct {
 	// tag
-	Tag     string `validate:"omitempty" form:"tag"`
-	IsAdmin bool   `json:"-"`
+	Tag               string `validate:"omitempty" form:"tag"`
+	IsAdmin           bool   `json:"-"`
+	CanUseReservedTag bool   `json:"-"`
 }
 
 // SearchTagsBySlugName search tags by slug name
