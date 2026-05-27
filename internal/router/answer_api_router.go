@@ -58,6 +58,7 @@ type AnswerAPIRouter struct {
 	badgeController               *controller.BadgeController
 	adminBadgeController          *controller_admin.BadgeController
 	apiKeyController              *controller_admin.AdminAPIKeyController
+	aiChatConfigController        *controller_admin.AIChatConfigController
 	aiController                  *controller.AIController
 	aiConversationController      *controller.AIConversationController
 	aiConversationAdminController *controller_admin.AIConversationAdminController
@@ -96,6 +97,7 @@ func NewAnswerAPIRouter(
 	badgeController *controller.BadgeController,
 	adminBadgeController *controller_admin.BadgeController,
 	apiKeyController *controller_admin.AdminAPIKeyController,
+	aiChatConfigController *controller_admin.AIChatConfigController,
 	aiController *controller.AIController,
 	aiConversationController *controller.AIConversationController,
 	aiConversationAdminController *controller_admin.AIConversationAdminController,
@@ -133,6 +135,7 @@ func NewAnswerAPIRouter(
 		badgeController:               badgeController,
 		adminBadgeController:          adminBadgeController,
 		apiKeyController:              apiKeyController,
+		aiChatConfigController:        aiChatConfigController,
 		aiController:                  aiController,
 		aiConversationController:      aiConversationController,
 		aiConversationAdminController: aiConversationAdminController,
@@ -326,11 +329,17 @@ func (a *AnswerAPIRouter) RegisterAnswerAPIRouter(r *gin.RouterGroup) {
 
 	// AI chat
 	r.POST("/chat/completions", a.aiController.ChatCompletions)
+	r.GET("/ai-chat/models", a.aiController.GetAIChatModels)
+	r.GET("/ai-chat/subscription/overview", a.aiController.GetSubscriptionOverview)
+	r.GET("/ai-chat/subscription/purchase", a.aiController.GetSubscriptionPurchase)
+	r.POST("/ai-chat/subscription/redeem", a.aiController.RedeemSubscriptionCode)
 
 	// AI conversation
 	r.GET("/ai/conversation/page", a.aiConversationController.GetConversationList)
 	r.GET("/ai/conversation", a.aiConversationController.GetConversationDetail)
 	r.POST("/ai/conversation/vote", a.aiConversationController.VoteRecord)
+	r.PUT("/ai/conversation/branch", a.aiConversationController.SwitchBranch)
+	r.DELETE("/ai/conversation/record", a.aiConversationController.DeleteRecord)
 }
 
 func (a *AnswerAPIRouter) RegisterAnswerAdminAPIRouter(r *gin.RouterGroup) {
@@ -421,6 +430,30 @@ func (a *AnswerAPIRouter) RegisterAnswerAdminAPIRouter(r *gin.RouterGroup) {
 	r.POST("/api-key", a.apiKeyController.AddAPIKey)
 	r.PUT("/api-key", a.apiKeyController.UpdateAPIKey)
 	r.DELETE("/api-key", a.apiKeyController.DeleteAPIKey)
+
+	// AI Chat config
+	r.GET("/ai-chat/providers", a.aiChatConfigController.ListProviders)
+	r.POST("/ai-chat/providers", a.aiChatConfigController.CreateProvider)
+	r.PUT("/ai-chat/providers/:id", a.aiChatConfigController.UpdateProvider)
+	r.DELETE("/ai-chat/providers/:id", a.aiChatConfigController.DeleteProvider)
+	r.POST("/ai-chat/providers/:id/fetch-models", a.aiChatConfigController.FetchProviderModels)
+	r.POST("/ai-chat/providers/:id/test-model", a.aiChatConfigController.TestProviderModel)
+
+	r.GET("/ai-chat/model-mappings", a.aiChatConfigController.ListModelMappings)
+	r.POST("/ai-chat/model-mappings", a.aiChatConfigController.CreateModelMapping)
+	r.PUT("/ai-chat/model-mappings/:id", a.aiChatConfigController.UpdateModelMapping)
+	r.DELETE("/ai-chat/model-mappings/:id", a.aiChatConfigController.DeleteModelMapping)
+
+	r.GET("/ai-chat/subscription-plans", a.aiChatConfigController.ListSubscriptionPlans)
+	r.POST("/ai-chat/subscription-plans", a.aiChatConfigController.CreateSubscriptionPlan)
+	r.PUT("/ai-chat/subscription-plans/:id", a.aiChatConfigController.UpdateSubscriptionPlan)
+	r.DELETE("/ai-chat/subscription-plans/:id", a.aiChatConfigController.DeleteSubscriptionPlan)
+	r.GET("/ai-chat/redeem-codes", a.aiChatConfigController.ListSubscriptionRedeemCodes)
+	r.POST("/ai-chat/redeem-codes/generate", a.aiChatConfigController.GenerateSubscriptionRedeemCodes)
+
+	r.GET("/ai-chat/consume-rates", a.aiChatConfigController.ListConsumeRates)
+	r.POST("/ai-chat/consume-rates", a.aiChatConfigController.CreateConsumeRate)
+	r.PUT("/ai-chat/consume-rates/:id", a.aiChatConfigController.UpdateConsumeRate)
 
 	// ai config
 	r.GET("/ai-config", a.adminSiteInfoController.GetAIConfig)

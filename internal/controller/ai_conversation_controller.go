@@ -128,3 +128,29 @@ func (ctrl *AIConversationController) VoteRecord(ctx *gin.Context) {
 	err := ctrl.aiConversationService.VoteRecord(ctx, req)
 	handler.HandleResponse(ctx, err, nil)
 }
+
+func (ctrl *AIConversationController) SwitchBranch(ctx *gin.Context) {
+	if !ctrl.ensureEnabled(ctx) {
+		return
+	}
+	req := &schema.AIConversationBranchSwitchReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
+	err := ctrl.aiConversationService.SwitchBranch(ctx, req)
+	handler.HandleResponse(ctx, err, nil)
+}
+
+func (ctrl *AIConversationController) DeleteRecord(ctx *gin.Context) {
+	if !ctrl.ensureEnabled(ctx) {
+		return
+	}
+	req := &schema.AIConversationRecordDeleteReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
+	err := ctrl.aiConversationService.DeleteRecord(ctx, req)
+	handler.HandleResponse(ctx, err, nil)
+}

@@ -23,6 +23,7 @@ import (
 	"github.com/apache/answer/internal/base/data"
 	"github.com/apache/answer/internal/repo/activity"
 	"github.com/apache/answer/internal/repo/activity_common"
+	"github.com/apache/answer/internal/repo/ai_chat_config"
 	"github.com/apache/answer/internal/repo/ai_conversation"
 	"github.com/apache/answer/internal/repo/answer"
 	"github.com/apache/answer/internal/repo/api_key"
@@ -113,4 +114,5 @@ var ProviderSetRepo = wire.NewSet(
 	file_record.NewFileRecordRepo,
 	api_key.NewAPIKeyRepo,
 	ai_conversation.NewAIConversationRepo,
+	ai_chat_config.NewAIChatConfigRepo,
 )

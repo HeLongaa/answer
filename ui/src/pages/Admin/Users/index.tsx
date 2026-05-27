@@ -270,6 +270,9 @@ const Users: FC = () => {
             )}
 
             <th style={{ width: '12%' }}>{t('status')}</th>
+            <th className="text-nowrap" style={{ width: '10%' }}>
+              订阅等级
+            </th>
             {curFilter !== 'suspended' && curFilter !== 'deleted' && (
               <th style={{ width: '12%' }}>{t('role')}</th>
             )}
@@ -325,6 +328,11 @@ const Users: FC = () => {
                 <td>
                   <span className={classNames('badge', bgMap[user.status])}>
                     {t(user.status)}
+                  </span>
+                </td>
+                <td>
+                  <span className="badge text-bg-light text-uppercase">
+                    {user.subscription_level || 'FREE'}
                   </span>
                 </td>
                 {curFilter !== 'suspended' && curFilter !== 'deleted' && (

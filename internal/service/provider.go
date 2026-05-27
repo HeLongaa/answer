@@ -24,6 +24,7 @@ import (
 	"github.com/apache/answer/internal/service/activity"
 	"github.com/apache/answer/internal/service/activity_common"
 	"github.com/apache/answer/internal/service/activityqueue"
+	"github.com/apache/answer/internal/service/ai_chat_config"
 	"github.com/apache/answer/internal/service/ai_conversation"
 	answercommon "github.com/apache/answer/internal/service/answer_common"
 	"github.com/apache/answer/internal/service/apikey"
@@ -135,6 +136,7 @@ var ProviderSetService = wire.NewSet(
 	file_record.NewFileRecordService,
 	apikey.NewAPIKeyService,
 	ai_conversation.NewAIConversationService,
+	ai_chat_config.NewAIChatConfigService,
 	feature_toggle.NewFeatureToggleService,
 	embedding.NewEmbeddingService,
 	vector_sync.NewService,

@@ -17,28 +17,28 @@
  * under the License.
  */
 
-import { NavLink, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import classNames from 'classnames';
 
 import { SideNav, AdminSideNav, Icon } from '@/components';
+import type { ConversationListItem } from '@/common/interface';
+import { getConversationList } from '@/services';
 import { siteInfoStore } from '@/stores';
 
 import './index.scss';
 
 const chatNavItems = [
   { icon: 'pencil-square', label: '新对话', active: true },
-  { icon: 'search', label: '搜索' },
   { icon: 'image', label: '图片生成' },
   { icon: 'credit-card-2-front', label: '订阅管理' },
   { icon: 'stars', label: '订阅兑换' },
-  { icon: 'grid', label: '工作空间' },
 ];
-
-const conversations = ['随意内容小片段', '新对话', '随意内容中文问候'];
 
 const MobileSideNav = ({ show, onHide }) => {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const isAdmin = pathname.includes('/admin');
   const isChat = pathname === '/';
   const isUserSideNavPage =
@@ -53,8 +53,51 @@ const MobileSideNav = ({ show, onHide }) => {
     pathname.startsWith('/badges') ||
     pathname.startsWith('/review');
   const siteInfo = siteInfoStore((state) => state.siteInfo);
+  const [conversationsOpen, setConversationsOpen] = useState(true);
+  const [conversationList, setConversationList] = useState<
+    ConversationListItem[]
+  >([]);
+  const [conversationID, setConversationID] = useState('');
 
   const closeSideNav = () => onHide(false);
+  const startNewConversation = () => {
+    window.dispatchEvent(new CustomEvent('hcai-start-new-conversation'));
+    closeSideNav();
+  };
+  const loadConversation = (id: string) => {
+    window.dispatchEvent(
+      new CustomEvent('hcai-load-conversation', {
+        detail: { conversation_id: id },
+      }),
+    );
+    setConversationID(id);
+    closeSideNav();
+  };
+  const openSubscription = () => {
+    window.dispatchEvent(new CustomEvent('hcai-open-subscription'));
+    closeSideNav();
+  };
+  const openRedeem = () => {
+    window.dispatchEvent(new CustomEvent('hcai-open-redeem'));
+    closeSideNav();
+  };
+  const goSubscriptionPurchase = () => {
+    closeSideNav();
+    navigate('/subscription');
+  };
+
+  useEffect(() => {
+    if (!show || !isChat) {
+      return;
+    }
+    getConversationList({ page: 1, page_size: 30 })
+      .then((data) => {
+        setConversationList(data.list || []);
+      })
+      .catch(() => {
+        setConversationList([]);
+      });
+  }, [isChat, show]);
 
   return (
     <>
@@ -98,7 +141,7 @@ const MobileSideNav = ({ show, onHide }) => {
         <button
           type="button"
           className="mobile-upgrade-switch"
-          aria-disabled="true">
+          onClick={goSubscriptionPurchase}>
           <Icon name="music-note-beamed" />
           <span>升级套餐</span>
         </button>
@@ -110,7 +153,18 @@ const MobileSideNav = ({ show, onHide }) => {
                 <button
                   type="button"
                   className={item.active ? 'active' : ''}
-                  key={item.label}>
+                  key={item.label}
+                  onClick={() => {
+                    if (item.label === '新对话') {
+                      startNewConversation();
+                    }
+                    if (item.label === '订阅管理') {
+                      openSubscription();
+                    }
+                    if (item.label === '订阅兑换') {
+                      openRedeem();
+                    }
+                  }}>
                   <Icon name={item.icon} />
                   <span>{item.label}</span>
                 </button>
@@ -118,27 +172,39 @@ const MobileSideNav = ({ show, onHide }) => {
             </nav>
 
             <div className="mobile-chat-section">
-              <div className="mobile-chat-section-title">
-                <Icon name="chevron-down" />
-                <span>频道</span>
-              </div>
-              <button type="button" className="mobile-chat-item">
-                <span>#</span>
-                <span>bug-fix</span>
-              </button>
-            </div>
-
-            <div className="mobile-chat-section">
-              <div className="mobile-chat-section-title">
-                <Icon name="chevron-down" />
+              <button
+                type="button"
+                className="mobile-chat-section-toggle"
+                aria-expanded={conversationsOpen}
+                aria-controls="mobile-chat-conversations"
+                onClick={() => setConversationsOpen((open) => !open)}>
+                <Icon
+                  name={conversationsOpen ? 'chevron-down' : 'chevron-right'}
+                />
                 <span>对话</span>
-              </div>
-              <span className="mobile-chat-time">过去 7 天</span>
-              {conversations.map((item) => (
-                <button type="button" className="mobile-chat-item" key={item}>
-                  {item}
-                </button>
-              ))}
+              </button>
+              {conversationsOpen ? (
+                <div
+                  id="mobile-chat-conversations"
+                  className="mobile-chat-conversation-list">
+                  <span className="mobile-chat-time">过去 7 天</span>
+                  {conversationList.length > 0 ? (
+                    conversationList.map((item) => (
+                      <button
+                        type="button"
+                        className={classNames('mobile-chat-item', {
+                          active: item.conversation_id === conversationID,
+                        })}
+                        key={item.conversation_id}
+                        onClick={() => loadConversation(item.conversation_id)}>
+                        {item.topic}
+                      </button>
+                    ))
+                  ) : (
+                    <span className="mobile-chat-empty">暂无对话</span>
+                  )}
+                </div>
+              ) : null}
             </div>
           </div>
         ) : isAdmin ? (

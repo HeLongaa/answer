@@ -21,6 +21,7 @@ package ai_conversation
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -30,6 +31,7 @@ import (
 	"github.com/apache/answer/internal/repo/ai_conversation"
 	"github.com/apache/answer/internal/schema"
 	usercommon "github.com/apache/answer/internal/service/user_common"
+	"github.com/apache/answer/pkg/token"
 	"github.com/segmentfault/pacman/errors"
 	"github.com/segmentfault/pacman/log"
 )
@@ -37,10 +39,12 @@ import (
 // AIConversationService
 type AIConversationService interface {
 	CreateConversation(ctx context.Context, userID, conversationID, topic string) error
-	SaveConversationRecords(ctx context.Context, conversationID, chatcmplID string, records []*ConversationMessage) error
+	SaveConversationRecords(ctx context.Context, conversationID, chatcmplID, branchParentMessageID string, records []*ConversationMessage) error
 	GetConversationList(ctx context.Context, req *schema.AIConversationListReq) (*pager.PageModel, error)
 	GetConversationDetail(ctx context.Context, req *schema.AIConversationDetailReq) (resp *schema.AIConversationDetailResp, exist bool, err error)
 	VoteRecord(ctx context.Context, req *schema.AIConversationVoteReq) error
+	SwitchBranch(ctx context.Context, req *schema.AIConversationBranchSwitchReq) error
+	DeleteRecord(ctx context.Context, req *schema.AIConversationRecordDeleteReq) error
 	GetConversationListForAdmin(ctx context.Context, req *schema.AIConversationAdminListReq) (*pager.PageModel, error)
 	GetConversationDetailForAdmin(ctx context.Context, req *schema.AIConversationAdminDetailReq) (*schema.AIConversationAdminDetailResp, error)
 	DeleteConversationForAdmin(ctx context.Context, req *schema.AIConversationAdminDeleteReq) error
@@ -49,8 +53,26 @@ type AIConversationService interface {
 // ConversationMessage
 type ConversationMessage struct {
 	ChatCompletionID string `json:"chat_completion_id"`
+	MessageID        string `json:"message_id"`
+	ParentMessageID  string `json:"parent_message_id"`
+	BranchIndex      int    `json:"branch_index"`
+	Active           bool   `json:"active"`
 	Role             string `json:"role"`
 	Content          string `json:"content"`
+	Images           []string
+	Files            []ConversationFile
+}
+
+type ConversationFile struct {
+	Name    string
+	Type    string
+	Size    int64
+	Content string
+}
+
+type ConversationAttachments struct {
+	Images []string           `json:"images,omitempty"`
+	Files  []ConversationFile `json:"files,omitempty"`
 }
 
 // aiConversationService
@@ -87,7 +109,7 @@ func (s *aiConversationService) CreateConversation(ctx context.Context, userID, 
 }
 
 // SaveConversationRecords
-func (s *aiConversationService) SaveConversationRecords(ctx context.Context, conversationID, chatcmplID string, records []*ConversationMessage) error {
+func (s *aiConversationService) SaveConversationRecords(ctx context.Context, conversationID, chatcmplID, branchParentMessageID string, records []*ConversationMessage) error {
 	conversation, exist, err := s.aiConversationRepo.GetConversation(ctx, conversationID)
 	if err != nil {
 		return errors.InternalServer(reason.DatabaseError).WithError(err)
@@ -97,17 +119,31 @@ func (s *aiConversationService) SaveConversationRecords(ctx context.Context, con
 	}
 
 	content := strings.Builder{}
+	parentMessageID := branchParentMessageID
+	lastPersistedMessageID := ""
 
 	for _, record := range records {
 		if len(record.ChatCompletionID) > 0 {
+			if record.MessageID != "" {
+				lastPersistedMessageID = record.MessageID
+			}
 			continue
 		}
 		if record.Role == "user" {
+			if parentMessageID != "" {
+				continue
+			}
+			parentMessageID = "msg-" + token.GenerateToken()
 			aiRecord := &entity.AIConversationRecord{
 				ConversationID:   conversationID,
 				ChatCompletionID: chatcmplID,
+				MessageID:        parentMessageID,
+				ParentMessageID:  lastPersistedMessageID,
 				Role:             "user",
 				Content:          record.Content,
+				Attachments:      marshalConversationAttachments(record),
+				BranchIndex:      0,
+				Active:           true,
 			}
 
 			err = s.aiConversationRepo.CreateRecord(ctx, aiRecord)
@@ -121,9 +157,20 @@ func (s *aiConversationService) SaveConversationRecords(ctx context.Context, con
 		content.WriteString(record.Content)
 		content.WriteString("\n")
 	}
+	if parentMessageID == "" {
+		return nil
+	}
+	branchIndex, err := s.aiConversationRepo.CountAssistantBranches(ctx, conversationID, parentMessageID)
+	if err != nil {
+		return errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
 	aiRecord := &entity.AIConversationRecord{
 		ConversationID:   conversationID,
 		ChatCompletionID: chatcmplID,
+		MessageID:        "msg-" + token.GenerateToken(),
+		ParentMessageID:  parentMessageID,
+		BranchIndex:      int(branchIndex),
+		Active:           true,
 		Role:             "assistant",
 		Content:          content.String(),
 		Helpful:          0,
@@ -133,6 +180,9 @@ func (s *aiConversationService) SaveConversationRecords(ctx context.Context, con
 	err = s.aiConversationRepo.CreateRecord(ctx, aiRecord)
 	if err != nil {
 		log.Errorf("create conversation record failed: %v", err)
+		return errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if err = s.aiConversationRepo.SetActiveBranch(ctx, conversationID, parentMessageID, aiRecord.MessageID); err != nil {
 		return errors.InternalServer(reason.DatabaseError).WithError(err)
 	}
 
@@ -186,13 +236,22 @@ func (s *aiConversationService) GetConversationDetail(ctx context.Context, req *
 		if i == 0 {
 			record.Content = conversation.Topic
 		}
+		attachments := unmarshalConversationAttachments(record.Attachments)
 		recordList = append(recordList, &schema.AIConversationRecord{
+			ID:               record.ID,
 			ChatCompletionID: record.ChatCompletionID,
+			MessageID:        record.MessageID,
+			ParentMessageID:  record.ParentMessageID,
+			BranchIndex:      record.BranchIndex,
+			Active:           record.Active,
 			Role:             record.Role,
 			Content:          record.Content,
+			Images:           attachments.Images,
+			Files:            schemaConversationFiles(attachments.Files),
 			Helpful:          record.Helpful,
 			Unhelpful:        record.Unhelpful,
 			CreatedAt:        record.CreatedAt.Unix(),
+			DeletedAt:        unixOrZero(record.DeletedAt),
 		})
 	}
 
@@ -203,6 +262,79 @@ func (s *aiConversationService) GetConversationDetail(ctx context.Context, req *
 		CreatedAt:      conversation.CreatedAt.Unix(),
 		UpdatedAt:      conversation.UpdatedAt.Unix(),
 	}, true, nil
+}
+
+func (s *aiConversationService) SwitchBranch(ctx context.Context, req *schema.AIConversationBranchSwitchReq) error {
+	conversation, exist, err := s.aiConversationRepo.GetConversation(ctx, req.ConversationID)
+	if err != nil {
+		return errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if !exist || conversation.UserID != req.UserID {
+		return errors.Forbidden(reason.UnauthorizedError)
+	}
+	record, exist, err := s.aiConversationRepo.GetRecordByMessageID(ctx, req.MessageID)
+	if err != nil {
+		return errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if !exist || record.ConversationID != req.ConversationID || record.ParentMessageID != req.ParentMessageID || record.Role != "assistant" {
+		return errors.BadRequest(reason.ObjectNotFound)
+	}
+	if err = s.aiConversationRepo.SetActiveBranch(ctx, req.ConversationID, req.ParentMessageID, req.MessageID); err != nil {
+		return errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	return nil
+}
+
+func (s *aiConversationService) DeleteRecord(ctx context.Context, req *schema.AIConversationRecordDeleteReq) error {
+	conversation, exist, err := s.aiConversationRepo.GetConversation(ctx, req.ConversationID)
+	if err != nil {
+		return errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if !exist || conversation.UserID != req.UserID {
+		return errors.Forbidden(reason.UnauthorizedError)
+	}
+	records, err := s.aiConversationRepo.GetRecordsByConversationID(ctx, req.ConversationID)
+	if err != nil {
+		return errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	children := map[string][]string{}
+	var target *entity.AIConversationRecord
+	for _, record := range records {
+		if record.MessageID == req.MessageID {
+			target = record
+		}
+		children[record.ParentMessageID] = append(children[record.ParentMessageID], record.MessageID)
+	}
+	if target == nil {
+		return errors.BadRequest(reason.ObjectNotFound)
+	}
+	toDelete := []string{}
+	var walk func(messageID string)
+	walk = func(messageID string) {
+		toDelete = append(toDelete, messageID)
+		for _, childID := range children[messageID] {
+			walk(childID)
+		}
+	}
+	walk(req.MessageID)
+	if err = s.aiConversationRepo.SoftDeleteRecords(ctx, toDelete); err != nil {
+		return errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if target.Role == "assistant" && target.ParentMessageID != "" && target.Active {
+		records, err := s.aiConversationRepo.GetRecordsByConversationID(ctx, req.ConversationID)
+		if err != nil {
+			return errors.InternalServer(reason.DatabaseError).WithError(err)
+		}
+		for _, item := range records {
+			if item.Role == "assistant" && item.ParentMessageID == target.ParentMessageID {
+				if err = s.aiConversationRepo.SetActiveBranch(ctx, req.ConversationID, target.ParentMessageID, item.MessageID); err != nil {
+					return errors.InternalServer(reason.DatabaseError).WithError(err)
+				}
+				break
+			}
+		}
+	}
+	return nil
 }
 
 // VoteRecord
@@ -315,10 +447,13 @@ func (s *aiConversationService) GetConversationDetailForAdmin(ctx context.Contex
 		if i == 0 {
 			record.Content = conversation.Topic
 		}
+		attachments := unmarshalConversationAttachments(record.Attachments)
 		recordList = append(recordList, schema.AIConversationRecord{
 			ChatCompletionID: record.ChatCompletionID,
 			Role:             record.Role,
 			Content:          record.Content,
+			Images:           attachments.Images,
+			Files:            schemaConversationFiles(attachments.Files),
 			Helpful:          record.Helpful,
 			Unhelpful:        record.Unhelpful,
 			CreatedAt:        record.CreatedAt.Unix(),
@@ -352,6 +487,56 @@ func (s *aiConversationService) getUserInfo(ctx context.Context, userID string) 
 	userInfo.Avatar = user.Avatar
 	userInfo.Rank = user.Rank
 	return userInfo, nil
+}
+
+func unixOrZero(value time.Time) int64 {
+	if value.IsZero() {
+		return 0
+	}
+	return value.Unix()
+}
+
+func marshalConversationAttachments(record *ConversationMessage) string {
+	if record == nil || (len(record.Images) == 0 && len(record.Files) == 0) {
+		return ""
+	}
+	data, err := json.Marshal(ConversationAttachments{
+		Images: record.Images,
+		Files:  record.Files,
+	})
+	if err != nil {
+		log.Errorf("marshal conversation attachments failed: %v", err)
+		return ""
+	}
+	return string(data)
+}
+
+func unmarshalConversationAttachments(value string) ConversationAttachments {
+	if strings.TrimSpace(value) == "" {
+		return ConversationAttachments{}
+	}
+	var attachments ConversationAttachments
+	if err := json.Unmarshal([]byte(value), &attachments); err != nil {
+		log.Errorf("unmarshal conversation attachments failed: %v", err)
+		return ConversationAttachments{}
+	}
+	return attachments
+}
+
+func schemaConversationFiles(files []ConversationFile) []schema.AIConversationFile {
+	if len(files) == 0 {
+		return nil
+	}
+	resp := make([]schema.AIConversationFile, 0, len(files))
+	for _, file := range files {
+		resp = append(resp, schema.AIConversationFile{
+			Name:    file.Name,
+			Type:    file.Type,
+			Size:    file.Size,
+			Content: file.Content,
+		})
+	}
+	return resp
 }
 
 // DeleteConversationForAdmin

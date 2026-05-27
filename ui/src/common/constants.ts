@@ -112,6 +112,12 @@ export const ADMIN_NAV_MENUS = [
     ],
   },
   {
+    name: 'ai_chat_config',
+    path: 'ai-chat-config',
+    icon: 'chat-square-text-fill',
+    children: [],
+  },
+  {
     name: 'community',
     icon: 'people-fill',
     children: [

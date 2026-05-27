@@ -1843,6 +1843,7 @@ ui:
     intelligence: Intelligence
     ai_assistant: AI Assistant
     ai_settings: AI Settings
+    ai_chat_config: AI-CHAT Config
     mcp: MCP
   website_welcome: Welcome to {{site_name}}
   user_center:

@@ -140,8 +140,10 @@ const Header: FC = () => {
     isUserSideNavPage ||
     location.pathname.startsWith('/badges') ||
     location.pathname.startsWith('/review');
+  const isSubscriptionPage = location.pathname === '/subscription';
   const isSideNavPage =
     location.pathname === '/' ||
+    isSubscriptionPage ||
     isCommunityPage ||
     location.pathname.startsWith('/admin');
   const isAuthFlowPage =
@@ -253,8 +255,10 @@ const Header: FC = () => {
             </button>
             <button
               type="button"
-              className="segment-item header-upgrade-segment"
-              aria-disabled="true">
+              className={classnames('segment-item header-upgrade-segment', {
+                active: isSubscriptionPage,
+              })}
+              onClick={() => navigate('/subscription')}>
               <Icon name="music-note-beamed" />
               <span>升级套餐</span>
             </button>

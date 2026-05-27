@@ -17,7 +17,7 @@
 
 module github.com/apache/answer
 
-go 1.24.0
+go 1.24.1
 
 require (
 	github.com/Machiel/slugify v1.0.1
@@ -39,6 +39,7 @@ require (
 	github.com/jinzhu/copier v0.4.0
 	github.com/jinzhu/now v1.1.5
 	github.com/joho/godotenv v1.5.1
+	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	github.com/lib/pq v1.10.9
 	github.com/mark3labs/mcp-go v0.43.2
 	github.com/microcosm-cc/bluemonday v1.0.27

@@ -1805,6 +1805,7 @@ ui:
     intelligence: 智力
     ai_assistant: AI 助手
     ai_settings: AI 设置
+    ai_chat_config: AI-CHAT配置
     mcp: MCP
   website_welcome: 欢迎来到 {{site_name}}
   user_center:

@@ -21,6 +21,7 @@ package ai_conversation
 
 import (
 	"context"
+	"time"
 
 	"github.com/apache/answer/internal/base/data"
 	"github.com/apache/answer/internal/base/pager"
@@ -40,6 +41,10 @@ type AIConversationRepo interface {
 	GetConversationsPage(ctx context.Context, page, pageSize int, cond *entity.AIConversation) (list []*entity.AIConversation, total int64, err error)
 	CreateRecord(ctx context.Context, record *entity.AIConversationRecord) error
 	GetRecordsByConversationID(ctx context.Context, conversationID string) ([]*entity.AIConversationRecord, error)
+	GetRecordByMessageID(ctx context.Context, messageID string) (*entity.AIConversationRecord, bool, error)
+	CountAssistantBranches(ctx context.Context, conversationID, parentMessageID string) (int64, error)
+	SetActiveBranch(ctx context.Context, conversationID, parentMessageID, messageID string) error
+	SoftDeleteRecords(ctx context.Context, messageIDs []string) error
 	UpdateRecordVote(ctx context.Context, cond *entity.AIConversationRecord) error
 	GetRecord(ctx context.Context, recordID int) (*entity.AIConversationRecord, bool, error)
 	GetRecordByChatCompletionID(ctx context.Context, role, chatCompletionID string) (*entity.AIConversationRecord, bool, error)
@@ -115,13 +120,62 @@ func (r *aiConversationRepo) GetRecordsByConversationID(ctx context.Context, con
 	records := make([]*entity.AIConversationRecord, 0)
 	err := r.data.DB.Context(ctx).
 		Where(builder.Eq{"conversation_id": conversationID}).
-		OrderBy("created_at ASC").
+		Where("deleted_at IS NULL OR deleted_at = ?", "0001-01-01 00:00:00").
+		Asc("id").
 		Find(&records)
 	if err != nil {
 		log.Errorf("get ai conversation records failed: %v", err)
 		return nil, err
 	}
 	return records, nil
+}
+
+func (r *aiConversationRepo) GetRecordByMessageID(ctx context.Context, messageID string) (*entity.AIConversationRecord, bool, error) {
+	record := &entity.AIConversationRecord{}
+	exist, err := r.data.DB.Context(ctx).
+		Where("message_id = ?", messageID).
+		Where("deleted_at IS NULL OR deleted_at = ?", "0001-01-01 00:00:00").
+		Get(record)
+	if err != nil {
+		log.Errorf("get ai conversation record by message id failed: %v", err)
+		return nil, false, err
+	}
+	return record, exist, nil
+}
+
+func (r *aiConversationRepo) CountAssistantBranches(ctx context.Context, conversationID, parentMessageID string) (int64, error) {
+	return r.data.DB.Context(ctx).
+		Where("conversation_id = ? AND parent_message_id = ? AND role = ?", conversationID, parentMessageID, "assistant").
+		Where("deleted_at IS NULL OR deleted_at = ?", "0001-01-01 00:00:00").
+		Count(new(entity.AIConversationRecord))
+}
+
+func (r *aiConversationRepo) SetActiveBranch(ctx context.Context, conversationID, parentMessageID, messageID string) error {
+	_, err := r.data.DB.Transaction(func(session *xorm.Session) (any, error) {
+		if _, err := session.Context(ctx).
+			Where("conversation_id = ? AND parent_message_id = ? AND role = ?", conversationID, parentMessageID, "assistant").
+			Cols("active").
+			Update(&entity.AIConversationRecord{Active: false}); err != nil {
+			return nil, err
+		}
+		_, err := session.Context(ctx).
+			Where("conversation_id = ? AND parent_message_id = ? AND message_id = ?", conversationID, parentMessageID, messageID).
+			Cols("active").
+			Update(&entity.AIConversationRecord{Active: true})
+		return nil, err
+	})
+	return err
+}
+
+func (r *aiConversationRepo) SoftDeleteRecords(ctx context.Context, messageIDs []string) error {
+	if len(messageIDs) == 0 {
+		return nil
+	}
+	_, err := r.data.DB.Context(ctx).
+		In("message_id", messageIDs).
+		Cols("deleted_at").
+		Update(&entity.AIConversationRecord{DeletedAt: time.Now()})
+	return err
 }
 
 // UpdateRecordVote update record vote

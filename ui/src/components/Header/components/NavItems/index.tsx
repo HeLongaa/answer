@@ -111,6 +111,30 @@ const Index: FC<Props> = ({ redDot, userInfo, logOut }) => {
             onClick={handleLinkClick}>
             {t('header.nav.setting')}
           </Dropdown.Item>
+          {redDot?.can_revision || userInfo.role_id === 2 ? (
+            <>
+              <Dropdown.Divider />
+              {redDot?.can_revision ? (
+                <Dropdown.Item
+                  href={`${REACT_BASE_PATH}/review`}
+                  onClick={handleLinkClick}>
+                  {t('header.nav.review')}
+                  {redDot.revision > 0 ? (
+                    <span className="float-end">
+                      {redDot.revision > 99 ? '99+' : redDot.revision}
+                    </span>
+                  ) : null}
+                </Dropdown.Item>
+              ) : null}
+              {userInfo.role_id === 2 ? (
+                <Dropdown.Item
+                  href={`${REACT_BASE_PATH}/admin`}
+                  onClick={handleLinkClick}>
+                  {t('header.nav.admin')}
+                </Dropdown.Item>
+              ) : null}
+            </>
+          ) : null}
           <Dropdown.Divider />
           <Dropdown.Item
             href={`${REACT_BASE_PATH}/users/logout`}

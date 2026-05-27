@@ -63,6 +63,10 @@ const routes: RouteNode[] = [
         index: true,
         page: 'pages/Chat',
       },
+      {
+        path: 'subscription',
+        page: 'pages/Subscription',
+      },
       // question and answer
       {
         // side nav layout
@@ -452,6 +456,10 @@ const routes: RouteNode[] = [
           {
             path: 'ai-settings',
             page: 'pages/Admin/AiSettings',
+          },
+          {
+            path: 'ai-chat-config',
+            page: 'pages/Admin/AiChatConfig',
           },
           {
             path: 'apikeys',

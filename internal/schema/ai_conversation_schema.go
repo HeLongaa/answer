@@ -45,12 +45,27 @@ type AIConversationDetailReq struct {
 
 // AIConversationRecord ai conversation record
 type AIConversationRecord struct {
-	ChatCompletionID string `json:"chat_completion_id"`
-	Role             string `json:"role"`
-	Content          string `json:"content"`
-	Helpful          int    `json:"helpful"`
-	Unhelpful        int    `json:"unhelpful"`
-	CreatedAt        int64  `json:"created_at"`
+	ID               int                  `json:"id"`
+	ChatCompletionID string               `json:"chat_completion_id"`
+	MessageID        string               `json:"message_id"`
+	ParentMessageID  string               `json:"parent_message_id"`
+	BranchIndex      int                  `json:"branch_index"`
+	Active           bool                 `json:"active"`
+	Role             string               `json:"role"`
+	Content          string               `json:"content"`
+	Images           []string             `json:"images"`
+	Files            []AIConversationFile `json:"files"`
+	Helpful          int                  `json:"helpful"`
+	Unhelpful        int                  `json:"unhelpful"`
+	CreatedAt        int64                `json:"created_at"`
+	DeletedAt        int64                `json:"deleted_at"`
+}
+
+type AIConversationFile struct {
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+	Size    int64  `json:"size"`
+	Content string `json:"content,omitempty"`
 }
 
 // AIConversationDetailResp ai conversation detail resp
@@ -68,6 +83,19 @@ type AIConversationVoteReq struct {
 	VoteType         string `validate:"required,oneof=helpful unhelpful" json:"vote_type"`
 	Cancel           bool   `validate:"omitempty" json:"cancel"`
 	UserID           string `validate:"omitempty" json:"-"`
+}
+
+type AIConversationBranchSwitchReq struct {
+	ConversationID  string `validate:"required" json:"conversation_id"`
+	ParentMessageID string `validate:"required" json:"parent_message_id"`
+	MessageID       string `validate:"required" json:"message_id"`
+	UserID          string `validate:"omitempty" json:"-"`
+}
+
+type AIConversationRecordDeleteReq struct {
+	ConversationID string `validate:"required" json:"conversation_id"`
+	MessageID      string `validate:"required" json:"message_id"`
+	UserID         string `validate:"omitempty" json:"-"`
 }
 
 // AIConversationAdminListReq ai conversation admin list req

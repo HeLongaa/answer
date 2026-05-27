@@ -24,13 +24,7 @@ import { useTranslation } from 'react-i18next';
 
 import classNames from 'classnames';
 
-import {
-  loggedUserInfoStore,
-  sideNavStore,
-  aiControlStore,
-  siteInfoStore,
-  brandingStore,
-} from '@/stores';
+import { aiControlStore, siteInfoStore, brandingStore } from '@/stores';
 import { Icon, PluginRender } from '@/components';
 import { PluginType } from '@/utils/pluginKit';
 import request from '@/utils/request';
@@ -47,8 +41,6 @@ interface IProps {
 const Index: FC<IProps> = ({ showBrand = true }) => {
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const { user: userInfo } = loggedUserInfoStore();
-  const { can_revision, revision } = sideNavStore();
   const { ai_enabled } = aiControlStore();
   const siteInfo = siteInfoStore((state) => state.siteInfo);
   const brandingInfo = brandingStore((state) => state.branding);
@@ -148,30 +140,6 @@ const Index: FC<IProps> = ({ showBrand = true }) => {
         request={request}
         navigate={navigate}
       />
-
-      {can_revision || userInfo?.role_id === 2 ? (
-        <>
-          <div className="py-2 px-3 mt-3 small fw-bold">
-            {t('header.nav.moderation')}
-          </div>
-          {can_revision && (
-            <NavLink to="/review" className="nav-link">
-              <Icon name="shield-fill-check" className="me-2" />
-              <span>{t('header.nav.review')}</span>
-              <span className="float-end">
-                {revision > 99 ? '99+' : revision > 0 ? revision : ''}
-              </span>
-            </NavLink>
-          )}
-
-          {userInfo?.role_id === 2 ? (
-            <NavLink to="/admin" className="nav-link">
-              <Icon name="gear-fill" className="me-2" />
-              <span>{t('header.nav.admin')}</span>
-            </NavLink>
-          ) : null}
-        </>
-      ) : null}
     </Nav>
   );
 };

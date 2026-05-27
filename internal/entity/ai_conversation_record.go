@@ -26,10 +26,16 @@ type AIConversationRecord struct {
 	ID               int       `xorm:"not null pk autoincr INT(11) id"`
 	CreatedAt        time.Time `xorm:"created not null default CURRENT_TIMESTAMP TIMESTAMP created_at"`
 	UpdatedAt        time.Time `xorm:"updated not null default CURRENT_TIMESTAMP TIMESTAMP updated_at"`
+	DeletedAt        time.Time `xorm:"TIMESTAMP deleted_at"`
 	ConversationID   string    `xorm:"not null VARCHAR(255) conversation_id"`
 	ChatCompletionID string    `xorm:"not null VARCHAR(255) chat_completion_id"`
+	MessageID        string    `xorm:"not null default '' index VARCHAR(255) message_id"`
+	ParentMessageID  string    `xorm:"not null default '' index VARCHAR(255) parent_message_id"`
+	BranchIndex      int       `xorm:"not null default 0 INT(11) branch_index"`
+	Active           bool      `xorm:"not null default true BOOL active"`
 	Role             string    `xorm:"not null default '' VARCHAR(128) role"`
 	Content          string    `xorm:"not null MEDIUMTEXT content"`
+	Attachments      string    `xorm:"MEDIUMTEXT attachments"`
 	Helpful          int       `xorm:"not null default 0 INT(11) helpful"`
 	Unhelpful        int       `xorm:"not null default 0 INT(11) unhelpful"`
 }

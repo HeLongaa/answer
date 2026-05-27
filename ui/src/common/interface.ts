@@ -858,12 +858,25 @@ export interface AdminConversationListItem {
 }
 
 export interface ConversationDetailItem {
+  id?: number;
   chat_completion_id: string;
+  message_id?: string;
+  parent_message_id?: string;
+  branch_index?: number;
+  active?: boolean;
   content: string;
+  images?: string[];
+  files?: {
+    name: string;
+    type?: string;
+    size?: number;
+    content?: string;
+  }[];
   role: string;
   helpful: number;
   unhelpful: number;
   created_at: number;
+  deleted_at?: number;
 }
 
 export interface ConversationDetail {
@@ -878,6 +891,66 @@ export interface VoteConversationParams {
   cancel: boolean;
   chat_completion_id: string;
   vote_type: 'helpful' | 'unhelpful';
+}
+
+export interface AiSubscriptionModelRate {
+  site_model_id: string;
+  consume_rate: number;
+}
+
+export interface AiChatModel {
+  site_model_id: string;
+  display_name: string;
+  description: string;
+  consume_rate: number;
+  enabled: boolean;
+  supports_vision: boolean;
+}
+
+export interface AiSubscriptionOverview {
+  plan_id: string;
+  plan_name: string;
+  chat_points: number;
+  chat_points_used: number;
+  chat_points_remaining: number;
+  image_quota: number;
+  image_quota_used: number;
+  image_quota_remaining: number;
+  available_models: string[];
+  consume_rates: AiSubscriptionModelRate[];
+  period_start: number;
+  period_end: number;
+  expires_at: number;
+}
+
+export interface AiSubscriptionPlan {
+  id: number;
+  plan_id: string;
+  name: string;
+  enabled: boolean;
+  monthly_price: number;
+  chat_points: number;
+  image_quota: number;
+  purchase_url: string;
+  model_mapping_ids: number[];
+  available_model_ids: string[];
+  task_description: string;
+  sort_order: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AiSubscriptionPurchase {
+  current_plan_id: string;
+  plans: AiSubscriptionPlan[];
+  consume_rates: AiSubscriptionModelRate[];
+}
+
+export interface AiSubscriptionRedeemResult {
+  plan_id: string;
+  plan_name: string;
+  started_at: number;
+  expires_at: number;
 }
 
 export interface AdminQuestionSetting {

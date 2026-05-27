@@ -38,6 +38,7 @@ import (
 	"github.com/apache/answer/internal/controller_admin"
 	"github.com/apache/answer/internal/repo/activity"
 	"github.com/apache/answer/internal/repo/activity_common"
+	"github.com/apache/answer/internal/repo/ai_chat_config"
 	"github.com/apache/answer/internal/repo/ai_conversation"
 	"github.com/apache/answer/internal/repo/answer"
 	"github.com/apache/answer/internal/repo/api_key"
@@ -75,6 +76,7 @@ import (
 	activity2 "github.com/apache/answer/internal/service/activity"
 	activity_common2 "github.com/apache/answer/internal/service/activity_common"
 	"github.com/apache/answer/internal/service/activityqueue"
+	ai_chat_config2 "github.com/apache/answer/internal/service/ai_chat_config"
 	ai_conversation2 "github.com/apache/answer/internal/service/ai_conversation"
 	"github.com/apache/answer/internal/service/answer_common"
 	"github.com/apache/answer/internal/service/apikey"
@@ -287,13 +289,16 @@ func initApplication(debug bool, serverConf *conf.Server, dbConf *data.Database,
 	adminAPIKeyController := controller_admin.NewAdminAPIKeyController(apiKeyService)
 	featureToggleService := feature_toggle.NewFeatureToggleService(siteInfoRepo)
 	embeddingService := embedding.NewEmbeddingService()
+	aiChatConfigRepo := ai_chat_config.NewAIChatConfigRepo(dataData)
+	aiChatConfigService := ai_chat_config2.NewAIChatConfigService(aiChatConfigRepo, userRepo)
+	aiChatConfigController := controller_admin.NewAIChatConfigController(aiChatConfigService)
 	mcpController := controller.NewMCPController(searchService, siteInfoCommonService, tagCommonService, questionCommon, commentRepo, userCommon, answerRepo, featureToggleService, embeddingService)
 	aiConversationRepo := ai_conversation.NewAIConversationRepo(dataData)
 	aiConversationService := ai_conversation2.NewAIConversationService(aiConversationRepo, userCommon)
-	aiController := controller.NewAIController(searchService, siteInfoCommonService, tagCommonService, questionCommon, commentRepo, userCommon, answerRepo, mcpController, aiConversationService, featureToggleService)
+	aiController := controller.NewAIController(searchService, siteInfoCommonService, tagCommonService, questionCommon, commentRepo, userCommon, answerRepo, mcpController, aiChatConfigService, aiConversationService, featureToggleService)
 	aiConversationController := controller.NewAIConversationController(aiConversationService, featureToggleService)
 	aiConversationAdminController := controller_admin.NewAIConversationAdminController(aiConversationService, featureToggleService)
-	answerAPIRouter := router.NewAnswerAPIRouter(langController, userController, commentController, reportController, voteController, tagController, followController, collectionController, questionController, answerController, searchController, revisionController, rankController, userAdminController, reasonController, themeController, siteInfoController, controllerSiteInfoController, notificationController, dashboardController, uploadController, activityController, roleController, pluginController, permissionController, userPluginController, reviewController, metaController, badgeController, controller_adminBadgeController, adminAPIKeyController, aiController, aiConversationController, aiConversationAdminController, mcpController)
+	answerAPIRouter := router.NewAnswerAPIRouter(langController, userController, commentController, reportController, voteController, tagController, followController, collectionController, questionController, answerController, searchController, revisionController, rankController, userAdminController, reasonController, themeController, siteInfoController, controllerSiteInfoController, notificationController, dashboardController, uploadController, activityController, roleController, pluginController, permissionController, userPluginController, reviewController, metaController, badgeController, controller_adminBadgeController, adminAPIKeyController, aiChatConfigController, aiController, aiConversationController, aiConversationAdminController, mcpController)
 	swaggerRouter := router.NewSwaggerRouter(swaggerConf)
 	uiRouter := router.NewUIRouter(controllerSiteInfoController, siteInfoCommonService)
 	authUserMiddleware := middleware.NewAuthUserMiddleware(authService, siteInfoCommonService)

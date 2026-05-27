@@ -1,0 +1,328 @@
+.hcai-subscription-page {
+  min-height: calc(100vh - 64px);
+  padding: 28px 22px 40px;
+  color: #18263a;
+}
+
+.hcai-subscription-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.hcai-subscription-page-head h1 {
+  margin: 0;
+  color: #101722;
+  font-size: 2rem;
+  font-weight: 820;
+  letter-spacing: 0;
+}
+
+.hcai-subscription-page-head p {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 0.98rem;
+  font-weight: 560;
+}
+
+.hcai-subscription-page-head span {
+  flex: none;
+  color: #8792a4;
+  font-size: 0.9rem;
+  font-weight: 620;
+}
+
+.hcai-subscription-page-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+}
+
+.hcai-subscription-page-state.error {
+  color: #b42318;
+  font-weight: 680;
+}
+
+.hcai-plan-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.hcai-plan-card,
+.hcai-rate-panel {
+  border: 1px solid var(--an-glass-border);
+  border-radius: var(--an-glass-radius);
+  background: var(--an-glass-surface);
+  box-shadow: var(--an-glass-shadow), var(--an-glass-inner-shadow);
+  backdrop-filter: blur(var(--an-glass-blur)) saturate(1.45);
+  -webkit-backdrop-filter: blur(var(--an-glass-blur)) saturate(1.45);
+}
+
+.hcai-plan-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+  padding: 22px 20px;
+}
+
+.hcai-plan-main {
+  min-height: 84px;
+}
+
+.hcai-plan-main h2 {
+  margin: 0 0 10px;
+  color: #101722;
+  font-size: 1.55rem;
+  font-weight: 820;
+}
+
+.hcai-plan-main p {
+  margin: 0;
+  color: #56647a;
+  font-size: 0.95rem;
+  font-weight: 620;
+  line-height: 1.45;
+}
+
+.hcai-plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 14px 0 8px;
+}
+
+.hcai-plan-price strong {
+  color: #05070a;
+  font-size: 2.65rem;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.hcai-plan-price span,
+.hcai-plan-quota,
+.hcai-plan-foot {
+  color: #8792a4;
+  font-size: 0.88rem;
+  font-weight: 620;
+}
+
+.hcai-plan-quota {
+  display: grid;
+  gap: 4px;
+  min-height: 44px;
+  margin-bottom: 16px;
+}
+
+.hcai-plan-card button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 42px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(12, 20, 32, 0.9);
+  border-radius: 999px;
+  color: #fff;
+  background: #101722;
+  font-weight: 780;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.hcai-plan-card button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bs-primary) 22%, #101722);
+  transform: translateY(-1px);
+}
+
+.hcai-plan-card button:disabled {
+  border-color: rgba(105, 122, 146, 0.14);
+  color: #8c96a6;
+  background: rgba(105, 122, 146, 0.12);
+}
+
+.hcai-plan-feature-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(105, 122, 146, 0.12);
+  color: #101722;
+  font-size: 0.92rem;
+  font-weight: 760;
+}
+
+.hcai-plan-card ul {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.hcai-plan-card li {
+  position: relative;
+  padding-left: 24px;
+  color: #1d2939;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.hcai-plan-card li::before {
+  position: absolute;
+  left: 0;
+  color: #101722;
+  content: '✓';
+  font-weight: 800;
+}
+
+.hcai-plan-foot {
+  margin-top: auto;
+  line-height: 1.45;
+}
+
+.hcai-rate-panel {
+  padding: 18px;
+}
+
+.hcai-rate-panel h2 {
+  margin: 0 0 12px;
+  color: #101722;
+  font-size: 1.08rem;
+  font-weight: 760;
+}
+
+.hcai-rate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.hcai-rate-grid > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.hcai-rate-grid strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #1d2939;
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hcai-rate-grid em {
+  flex: none;
+  color: #56647a;
+  font-size: 0.88rem;
+  font-style: normal;
+  font-weight: 620;
+}
+
+[data-bs-theme='dark'] .hcai-subscription-page {
+  color: var(--bs-body-color);
+
+  .hcai-subscription-page-head h1,
+  .hcai-plan-main h2,
+  .hcai-plan-price strong,
+  .hcai-plan-feature-title,
+  .hcai-rate-panel h2,
+  .hcai-rate-grid strong {
+    color: rgba(238, 244, 255, 0.88);
+  }
+
+  .hcai-subscription-page-head p,
+  .hcai-subscription-page-head span,
+  .hcai-plan-main p,
+  .hcai-plan-price span,
+  .hcai-plan-quota,
+  .hcai-plan-foot,
+  .hcai-rate-grid em {
+    color: var(--an-glass-muted);
+  }
+
+  .hcai-plan-card,
+  .hcai-rate-panel {
+    border-color: rgba(210, 225, 255, 0.15);
+    background: rgba(18, 26, 38, 0.82);
+    box-shadow:
+      0 22px 64px rgba(0, 0, 0, 0.38),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .hcai-plan-card li {
+    color: rgba(238, 244, 255, 0.72);
+  }
+
+  .hcai-plan-card li::before {
+    color: #7fa2ff;
+  }
+
+  .hcai-plan-feature-title {
+    border-bottom-color: rgba(210, 225, 255, 0.12);
+  }
+
+  .hcai-plan-card button {
+    color: rgba(238, 244, 255, 0.92);
+    border-color: rgba(201, 218, 247, 0.18);
+    background: #101722;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 10px 24px rgba(0, 0, 0, 0.18);
+  }
+
+  .hcai-plan-card button:hover:not(:disabled) {
+    color: #7fa2ff;
+    border-color: rgba(var(--bs-primary-rgb), 0.28);
+    background: rgba(var(--bs-primary-rgb), 0.13);
+  }
+
+  .hcai-plan-card button:disabled {
+    color: rgba(238, 244, 255, 0.48);
+    border-color: rgba(201, 218, 247, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .hcai-rate-grid > div {
+    border-color: rgba(255, 255, 255, 0.13);
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .hcai-plan-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .hcai-subscription-page {
+    padding: 18px 14px 28px;
+  }
+
+  .hcai-subscription-page-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .hcai-plan-card {
+    min-height: auto;
+  }
+}

@@ -17,19 +17,19 @@
  * under the License.
  */
 
-package controller_admin
+package migrations
 
-import "github.com/google/wire"
+import (
+	"context"
+	"fmt"
 
-// ProviderSetController is controller providers.
-var ProviderSetController = wire.NewSet(
-	NewUserAdminController,
-	NewThemeController,
-	NewSiteInfoController,
-	NewRoleController,
-	NewPluginController,
-	NewBadgeController,
-	NewAdminAPIKeyController,
-	NewAIConversationAdminController,
-	NewAIChatConfigController,
+	"github.com/apache/answer/internal/entity"
+	"xorm.io/xorm"
 )
+
+func addAIConversationAttachments(ctx context.Context, x *xorm.Engine) error {
+	if err := x.Context(ctx).Sync(new(entity.AIConversationRecord)); err != nil {
+		return fmt.Errorf("sync ai conversation attachments failed: %w", err)
+	}
+	return nil
+}

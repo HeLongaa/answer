@@ -521,6 +521,15 @@ func (us *UserAdminService) GetUserPage(ctx context.Context, req *schema.GetUser
 			Rank:        u.Rank,
 			DisplayName: u.DisplayName,
 			Avatar:      avatarMapping[u.ID].GetURL(),
+			SubscriptionLevel: func() string {
+				if u.SubscriptionLevel == "" || u.SubscriptionLevel == "free" {
+					return "free"
+				}
+				if u.SubscriptionExpiresAt.IsZero() || !u.SubscriptionExpiresAt.After(time.Now()) {
+					return "free"
+				}
+				return u.SubscriptionLevel
+			}(),
 		}
 		switch {
 		case u.Status == entity.UserStatusDeleted:

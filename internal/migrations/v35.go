@@ -17,19 +17,26 @@
  * under the License.
  */
 
-package controller_admin
+package migrations
 
-import "github.com/google/wire"
+import (
+	"context"
+	"fmt"
 
-// ProviderSetController is controller providers.
-var ProviderSetController = wire.NewSet(
-	NewUserAdminController,
-	NewThemeController,
-	NewSiteInfoController,
-	NewRoleController,
-	NewPluginController,
-	NewBadgeController,
-	NewAdminAPIKeyController,
-	NewAIConversationAdminController,
-	NewAIChatConfigController,
+	"github.com/apache/answer/internal/entity"
+	"xorm.io/xorm"
 )
+
+func addSubscriptionRedeemCodes(ctx context.Context, x *xorm.Engine) error {
+	if err := x.Context(ctx).Sync(
+		new(entity.User),
+		new(entity.AISubscriptionRedeemCode),
+	); err != nil {
+		return fmt.Errorf("sync subscription redeem codes failed: %w", err)
+	}
+	if _, err := x.Context(ctx).Where("subscription_level = '' OR subscription_level IS NULL").
+		Cols("subscription_level").Update(&entity.User{SubscriptionLevel: "free"}); err != nil {
+		return fmt.Errorf("set user default subscription level failed: %w", err)
+	}
+	return nil
+}

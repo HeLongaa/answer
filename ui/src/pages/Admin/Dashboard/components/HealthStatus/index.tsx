@@ -23,9 +23,6 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 import type * as Type from '@/common/interface';
-import { siteSecurityStore } from '@/stores';
-
-const { gt, gte } = require('semver');
 
 interface IProps {
   data: Type.AdminDashboard['info'];
@@ -33,51 +30,12 @@ interface IProps {
 
 const HealthStatus: FC<IProps> = ({ data }) => {
   const { t } = useTranslation('translation', { keyPrefix: 'admin.dashboard' });
-  const { version, remote_version } = data.version_info || {};
-  const { check_update } = siteSecurityStore.getState();
-  let isLatest = false;
-  let hasNewerVersion = false;
-  const downloadUrl = `https://answer.apache.org/download?from_version=${version}`;
-  if (version && remote_version) {
-    isLatest = gte(version, remote_version);
-    hasNewerVersion = gt(remote_version, version);
-  }
+
   return (
     <Card className="mb-4">
       <Card.Body>
         <h6 className="mb-3">{t('site_health')}</h6>
         <Row>
-          <Col xs={6} className="mb-1 d-flex align-items-center">
-            <span className="text-secondary me-1">{t('version')}</span>
-            <strong>{version}</strong>
-            {isLatest && (
-              <a
-                className="ms-1 badge rounded-pill text-bg-success"
-                target="_blank"
-                href={downloadUrl}
-                rel="noreferrer">
-                {t('latest')}
-              </a>
-            )}
-            {!isLatest && hasNewerVersion && (
-              <a
-                className="ms-1 badge rounded-pill text-bg-warning"
-                target="_blank"
-                href={downloadUrl}
-                rel="noreferrer">
-                {t('update_to')} {remote_version}
-              </a>
-            )}
-            {!isLatest && !remote_version && check_update && (
-              <a
-                className="ms-1 badge rounded-pill text-bg-danger"
-                target="_blank"
-                href={downloadUrl}
-                rel="noreferrer">
-                {t('check_failed')}
-              </a>
-            )}
-          </Col>
           <Col xs={6} className="mb-1">
             <span className="text-secondary me-1">{t('run_mode')}</span>
             <strong>{data.login_required ? t('private') : t('public')}</strong>

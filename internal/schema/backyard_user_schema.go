@@ -126,6 +126,8 @@ type GetUserPageResp struct {
 	RoleID int `json:"role_id"`
 	// role name
 	RoleName string `json:"role_name"`
+	// subscription level
+	SubscriptionLevel string `json:"subscription_level"`
 }
 
 // GetUserInfoReq get user request

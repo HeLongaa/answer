@@ -38,3 +38,41 @@ export const getConversationDetail = (id: string) => {
 export const voteConversation = (params: Type.VoteConversationParams) => {
   return request.post('/answer/api/v1/ai/conversation/vote', params);
 };
+
+export const switchConversationBranch = (params: {
+  conversation_id: string;
+  parent_message_id: string;
+  message_id: string;
+}) => {
+  return request.put('/answer/api/v1/ai/conversation/branch', params);
+};
+
+export const deleteConversationRecord = (params: {
+  conversation_id: string;
+  message_id: string;
+}) => {
+  return request.delete('/answer/api/v1/ai/conversation/record', params);
+};
+
+export const getAiSubscriptionOverview = () => {
+  return request.get<Type.AiSubscriptionOverview>(
+    '/answer/api/v1/ai-chat/subscription/overview',
+  );
+};
+
+export const getAiChatModels = () => {
+  return request.get<Type.AiChatModel[]>('/answer/api/v1/ai-chat/models');
+};
+
+export const getAiSubscriptionPurchase = () => {
+  return request.get<Type.AiSubscriptionPurchase>(
+    '/answer/api/v1/ai-chat/subscription/purchase',
+  );
+};
+
+export const redeemAiSubscriptionCode = (params: { code: string }) => {
+  return request.post<Type.AiSubscriptionRedeemResult>(
+    '/answer/api/v1/ai-chat/subscription/redeem',
+    params,
+  );
+};

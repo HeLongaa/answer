@@ -108,6 +108,14 @@ var migrations = []Migration{
 	NewMigration("v1.8.0", "change admin menu", updateAdminMenuSettings, true),
 	NewMigration("v1.8.1", "ai feat", aiFeat, true),
 	NewMigration("v2.0.1", "change avatar type to text", updateAvatarType, false),
+	NewMigration("v2.1.0", "add ai chat config", addAIChatConfig, true),
+	NewMigration("v2.1.1", "add subscription purchase url", addSubscriptionPurchaseURL, false),
+	NewMigration("v2.1.2", "add subscription redeem codes", addSubscriptionRedeemCodes, false),
+	NewMigration("v2.1.3", "add ai chat usage logs", addAIChatUsageLogs, false),
+	NewMigration("v2.1.4", "add ai conversation branches", addAIConversationBranches, false),
+	NewMigration("v2.1.5", "add ai model vision capability", addAIModelVisionCapability, false),
+	NewMigration("v2.1.6", "add ai conversation attachments", addAIConversationAttachments, false),
+	NewMigration("v2.1.7", "add ai provider stream capability", addAIProviderStreamCapability, false),
 }
 
 func GetMigrations() []Migration {
