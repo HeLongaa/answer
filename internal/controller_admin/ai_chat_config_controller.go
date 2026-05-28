@@ -209,6 +209,92 @@ func (ctrl *AIChatConfigController) UpdateConsumeRate(ctx *gin.Context) {
 	handler.HandleResponse(ctx, err, resp)
 }
 
+func (ctrl *AIChatConfigController) ListImageProviders(ctx *gin.Context) {
+	resp, err := ctrl.aiChatConfigService.ListImageProviders(ctx)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) CreateImageProvider(ctx *gin.Context) {
+	req := &schema.AIImageProviderReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	resp, err := ctrl.aiChatConfigService.CreateImageProvider(ctx, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) UpdateImageProvider(ctx *gin.Context) {
+	id, ok := pathID(ctx)
+	if !ok {
+		return
+	}
+	req := &schema.AIImageProviderReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	resp, err := ctrl.aiChatConfigService.UpdateImageProvider(ctx, id, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) DeleteImageProvider(ctx *gin.Context) {
+	id, ok := pathID(ctx)
+	if !ok {
+		return
+	}
+	err := ctrl.aiChatConfigService.DeleteImageProvider(ctx, id)
+	handler.HandleResponse(ctx, err, nil)
+}
+
+func (ctrl *AIChatConfigController) ListImageModels(ctx *gin.Context) {
+	resp, err := ctrl.aiChatConfigService.ListImageModels(ctx, false)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) CreateImageModel(ctx *gin.Context) {
+	req := &schema.AIImageModelReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	resp, err := ctrl.aiChatConfigService.SaveImageModel(ctx, 0, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) UpdateImageModel(ctx *gin.Context) {
+	id, ok := pathID(ctx)
+	if !ok {
+		return
+	}
+	req := &schema.AIImageModelReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	resp, err := ctrl.aiChatConfigService.SaveImageModel(ctx, id, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) DeleteImageModel(ctx *gin.Context) {
+	id, ok := pathID(ctx)
+	if !ok {
+		return
+	}
+	err := ctrl.aiChatConfigService.DeleteImageModel(ctx, id)
+	handler.HandleResponse(ctx, err, nil)
+}
+
+func (ctrl *AIChatConfigController) GetImageSetting(ctx *gin.Context) {
+	resp, err := ctrl.aiChatConfigService.GetImageSetting(ctx)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) SaveImageSetting(ctx *gin.Context) {
+	req := &schema.AIImageSettingReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	resp, err := ctrl.aiChatConfigService.SaveImageSetting(ctx, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
 func pathID(ctx *gin.Context) (int, bool) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {

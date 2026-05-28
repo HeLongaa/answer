@@ -86,6 +86,7 @@ class Request {
         } = error.response || {};
         const { data = {}, msg = '' } = errBody || {};
 
+        const isTimeout = error.code === 'ECONNABORTED';
         const errorObject: {
           code: any;
           msg: string;
@@ -95,8 +96,8 @@ class Request {
           // Currently only used for form errors
           list?: any[];
         } = {
-          code: status,
-          msg,
+          code: status || error.code,
+          msg: isTimeout ? '请求处理时间较长，请稍后刷新查看结果' : msg,
           data,
         };
 

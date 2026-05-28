@@ -35,8 +35,10 @@ func (am *AuthUserMiddleware) VisitAuth() gin.HandlerFunc {
 			ctx.Next()
 			return
 		}
-		// If visit brand image, no need to check visit token. Because the brand image is public.
-		if strings.HasPrefix(ctx.Request.URL.Path, "/uploads/branding/") {
+		// If visit brand image or generated AI image, no need to check visit token.
+		// Brand image is public, and AI image URLs are shown directly in the chat UI.
+		if strings.HasPrefix(ctx.Request.URL.Path, "/uploads/branding/") ||
+			strings.HasPrefix(ctx.Request.URL.Path, "/uploads/"+constant.AIImageSubPath+"/") {
 			ctx.Next()
 			return
 		}

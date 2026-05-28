@@ -77,6 +77,17 @@ const routes: RouteNode[] = [
             page: 'pages/Questions',
           },
           {
+            path: 'tasks',
+            page: 'pages/Tasks',
+          },
+          {
+            path: 'tasks/new',
+            page: 'pages/Tasks/New',
+            guard: () => {
+              return guard.logged();
+            },
+          },
+          {
             path: 'questions/ask',
             page: 'pages/Questions/Ask',
             guard: () => {
@@ -205,6 +216,10 @@ const routes: RouteNode[] = [
               {
                 path: 'interface',
                 page: 'pages/Users/Settings/Interface',
+              },
+              {
+                path: 'points',
+                page: 'pages/Users/Settings/Points',
               },
               {
                 path: ':slug_name',
@@ -372,6 +387,14 @@ const routes: RouteNode[] = [
           {
             path: 'qa/settings',
             page: 'pages/Admin/QaSettings',
+          },
+          {
+            path: 'tasks',
+            page: 'pages/Admin/Tasks',
+          },
+          {
+            path: 'featured-posts',
+            page: 'pages/Admin/FeaturedPosts',
           },
           {
             path: 'tags/settings',

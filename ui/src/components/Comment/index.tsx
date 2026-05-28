@@ -54,10 +54,17 @@ interface IProps {
   objectId: string;
   mode?: 'answer' | 'question';
   commentId?: string | null;
+  reactionActions?: React.ReactNode;
   children?: React.ReactNode;
 }
 
-const Comment: FC<IProps> = ({ objectId, mode, commentId, children }) => {
+const Comment: FC<IProps> = ({
+  objectId,
+  mode,
+  commentId,
+  reactionActions,
+  children,
+}) => {
   const pageUsers = usePageUsers();
   const [pageIndex, setPageIndex] = useState(0);
   const [visibleComment, setVisibleComment] = useState(false);
@@ -386,11 +393,14 @@ const Comment: FC<IProps> = ({ objectId, mode, commentId, children }) => {
           'd-flex flex-wrap justify-content-between align-items-center',
           comments.length === 0 ? '' : 'mb-3',
         )}>
-        <Reactions
-          objectId={objectId}
-          showAddCommentBtn={comments.length === 0}
-          handleClickComment={handleAddComment}
-        />
+        <div className="d-flex flex-wrap align-items-center">
+          <Reactions
+            objectId={objectId}
+            showAddCommentBtn={comments.length === 0}
+            handleClickComment={handleAddComment}
+          />
+          {reactionActions}
+        </div>
         {children}
       </div>
       <div

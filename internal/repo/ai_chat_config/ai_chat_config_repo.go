@@ -67,6 +67,24 @@ type AIChatConfigRepo interface {
 	SaveConsumeRate(ctx context.Context, rate *entity.AIModelConsumeRate) error
 	CreateUsageLog(ctx context.Context, log *entity.AIChatUsageLog) error
 	SumUserChatUsage(ctx context.Context, userID string, startAt, endAt any) (float64, error)
+
+	EnsureImageTables(ctx context.Context) error
+	ListImageProviders(ctx context.Context) ([]*entity.AIImageProvider, error)
+	GetImageProvider(ctx context.Context, id int) (*entity.AIImageProvider, bool, error)
+	CreateImageProvider(ctx context.Context, provider *entity.AIImageProvider) error
+	UpdateImageProvider(ctx context.Context, provider *entity.AIImageProvider, cols ...string) error
+	DeleteImageProvider(ctx context.Context, id int) error
+	ListImageModels(ctx context.Context, onlyEnabled bool) ([]*entity.AIImageModel, error)
+	GetImageModel(ctx context.Context, id int) (*entity.AIImageModel, bool, error)
+	GetImageModelBySiteModelID(ctx context.Context, siteModelID string) (*entity.AIImageModel, bool, error)
+	SaveImageModel(ctx context.Context, model *entity.AIImageModel) error
+	DeleteImageModel(ctx context.Context, id int) error
+	GetImageSetting(ctx context.Context) (*entity.AIImageSetting, bool, error)
+	SaveImageSetting(ctx context.Context, setting *entity.AIImageSetting) error
+	CreateImageGeneration(ctx context.Context, generation *entity.AIImageGeneration) error
+	UpdateImageGeneration(ctx context.Context, generationID string, generation *entity.AIImageGeneration, cols ...string) error
+	ListUserImageGenerations(ctx context.Context, userID string, limit int) ([]*entity.AIImageGeneration, error)
+	CountUserImageGenerations(ctx context.Context, userID string, startAt, endAt any) (int, error)
 }
 
 type aiChatConfigRepo struct {
@@ -389,4 +407,158 @@ func (r *aiChatConfigRepo) SumUserChatUsage(ctx context.Context, userID string, 
 		return 0, err
 	}
 	return total.ConsumePoints, nil
+}
+
+func (r *aiChatConfigRepo) EnsureImageTables(ctx context.Context) error {
+	if err := r.data.DB.Context(ctx).Sync(
+		new(entity.AIImageProvider),
+		new(entity.AIImageModel),
+		new(entity.AIImageSetting),
+		new(entity.AIImageGeneration),
+	); err != nil {
+		return err
+	}
+	exist, err := r.data.DB.Context(ctx).ID(1).Exist(new(entity.AIImageSetting))
+	if err != nil || exist {
+		return err
+	}
+	_, err = r.data.DB.Context(ctx).Insert(&entity.AIImageSetting{
+		ID:            1,
+		RetentionDays: 30,
+	})
+	return err
+}
+
+func (r *aiChatConfigRepo) ListImageProviders(ctx context.Context) ([]*entity.AIImageProvider, error) {
+	list := make([]*entity.AIImageProvider, 0)
+	return list, r.data.DB.Context(ctx).Asc("id").Find(&list)
+}
+
+func (r *aiChatConfigRepo) GetImageProvider(ctx context.Context, id int) (*entity.AIImageProvider, bool, error) {
+	provider := &entity.AIImageProvider{}
+	exist, err := r.data.DB.Context(ctx).ID(id).Get(provider)
+	return provider, exist, err
+}
+
+func (r *aiChatConfigRepo) CreateImageProvider(ctx context.Context, provider *entity.AIImageProvider) error {
+	_, err := r.data.DB.Context(ctx).Insert(provider)
+	return err
+}
+
+func (r *aiChatConfigRepo) UpdateImageProvider(ctx context.Context, provider *entity.AIImageProvider, cols ...string) error {
+	session := r.data.DB.Context(ctx).ID(provider.ID)
+	if len(cols) > 0 {
+		session = session.Cols(cols...)
+	}
+	_, err := session.Update(provider)
+	return err
+}
+
+func (r *aiChatConfigRepo) DeleteImageProvider(ctx context.Context, id int) error {
+	_, err := r.data.DB.Transaction(func(session *xorm.Session) (any, error) {
+		if _, err := session.Context(ctx).Where("provider_id = ?", id).Delete(new(entity.AIImageModel)); err != nil {
+			return nil, err
+		}
+		_, err := session.Context(ctx).ID(id).Delete(new(entity.AIImageProvider))
+		return nil, err
+	})
+	return err
+}
+
+func (r *aiChatConfigRepo) ListImageModels(ctx context.Context, onlyEnabled bool) ([]*entity.AIImageModel, error) {
+	list := make([]*entity.AIImageModel, 0)
+	session := r.data.DB.Context(ctx).Asc("sort_order", "id")
+	if onlyEnabled {
+		session = session.Where("enabled = ?", true)
+	}
+	return list, session.Find(&list)
+}
+
+func (r *aiChatConfigRepo) GetImageModel(ctx context.Context, id int) (*entity.AIImageModel, bool, error) {
+	model := &entity.AIImageModel{}
+	exist, err := r.data.DB.Context(ctx).ID(id).Get(model)
+	return model, exist, err
+}
+
+func (r *aiChatConfigRepo) GetImageModelBySiteModelID(ctx context.Context, siteModelID string) (*entity.AIImageModel, bool, error) {
+	model := &entity.AIImageModel{}
+	exist, err := r.data.DB.Context(ctx).Where("site_model_id = ?", siteModelID).Get(model)
+	return model, exist, err
+}
+
+func (r *aiChatConfigRepo) SaveImageModel(ctx context.Context, model *entity.AIImageModel) error {
+	if model.ID > 0 {
+		_, err := r.data.DB.Context(ctx).ID(model.ID).AllCols().Update(model)
+		return err
+	}
+	_, err := r.data.DB.Context(ctx).Insert(model)
+	return err
+}
+
+func (r *aiChatConfigRepo) DeleteImageModel(ctx context.Context, id int) error {
+	_, err := r.data.DB.Context(ctx).ID(id).Delete(new(entity.AIImageModel))
+	return err
+}
+
+func (r *aiChatConfigRepo) GetImageSetting(ctx context.Context) (*entity.AIImageSetting, bool, error) {
+	setting := &entity.AIImageSetting{}
+	exist, err := r.data.DB.Context(ctx).ID(1).Get(setting)
+	return setting, exist, err
+}
+
+func (r *aiChatConfigRepo) SaveImageSetting(ctx context.Context, setting *entity.AIImageSetting) error {
+	setting.ID = 1
+	exist, err := r.data.DB.Context(ctx).ID(1).Exist(new(entity.AIImageSetting))
+	if err != nil {
+		return err
+	}
+	if exist {
+		_, err = r.data.DB.Context(ctx).ID(1).Cols("retention_days").Update(setting)
+		return err
+	}
+	_, err = r.data.DB.Context(ctx).Insert(setting)
+	return err
+}
+
+func (r *aiChatConfigRepo) CreateImageGeneration(ctx context.Context, generation *entity.AIImageGeneration) error {
+	_, err := r.data.DB.Context(ctx).Insert(generation)
+	return err
+}
+
+func (r *aiChatConfigRepo) UpdateImageGeneration(ctx context.Context, generationID string, generation *entity.AIImageGeneration, cols ...string) error {
+	_, err := r.data.DB.Context(ctx).
+		Where("generation_id = ?", generationID).
+		Cols(cols...).
+		Update(generation)
+	return err
+}
+
+func (r *aiChatConfigRepo) ListUserImageGenerations(ctx context.Context, userID string, limit int) ([]*entity.AIImageGeneration, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 30
+	}
+	list := make([]*entity.AIImageGeneration, 0)
+	return list, r.data.DB.Context(ctx).
+		Where("user_id = ?", userID).
+		Desc("id").
+		Limit(limit).
+		Find(&list)
+}
+
+func (r *aiChatConfigRepo) CountUserImageGenerations(ctx context.Context, userID string, startAt, endAt any) (int, error) {
+	var total struct {
+		Count int `xorm:"count"`
+	}
+	ok, err := r.data.DB.Context(ctx).
+		Table(new(entity.AIImageGeneration)).
+		Select("COALESCE(SUM(count), 0) AS count").
+		Where("user_id = ?", userID).
+		And("status = ?", "completed").
+		And("created_at >= ?", startAt).
+		And("created_at < ?", endAt).
+		Get(&total)
+	if err != nil || !ok {
+		return 0, err
+	}
+	return total.Count, nil
 }

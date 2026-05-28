@@ -33,6 +33,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -157,6 +158,78 @@ func (c *AIController) GetAIChatModels(ctx *gin.Context) {
 	userID := middleware.GetLoginUserIDFromContext(ctx)
 	resp, err := c.aiChatConfigService.ListUserAvailableModels(ctx, userID)
 	handler.HandleResponse(ctx, err, resp)
+}
+
+func (c *AIController) GetAIImageModels(ctx *gin.Context) {
+	if c.aiChatConfigService == nil {
+		handler.HandleResponse(ctx, errors.BadRequest("ai chat config is not available"), nil)
+		return
+	}
+	resp, err := c.aiChatConfigService.ListImageModels(ctx, true)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (c *AIController) GenerateImage(ctx *gin.Context) {
+	if c.aiChatConfigService == nil {
+		handler.HandleResponse(ctx, errors.BadRequest("ai chat config is not available"), nil)
+		return
+	}
+	req := &schema.AIImageGenerateReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	userID := middleware.GetLoginUserIDFromContext(ctx)
+	resp, err := c.aiChatConfigService.GenerateImage(ctx, userID, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (c *AIController) EditImage(ctx *gin.Context) {
+	if c.aiChatConfigService == nil {
+		handler.HandleResponse(ctx, errors.BadRequest("ai chat config is not available"), nil)
+		return
+	}
+	req := &schema.AIImageEditReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	userID := middleware.GetLoginUserIDFromContext(ctx)
+	resp, err := c.aiChatConfigService.EditImage(ctx, userID, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (c *AIController) GetImageGenerations(ctx *gin.Context) {
+	if c.aiChatConfigService == nil {
+		handler.HandleResponse(ctx, errors.BadRequest("ai chat config is not available"), nil)
+		return
+	}
+	limit := 30
+	if raw := ctx.Query("limit"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil {
+			limit = parsed
+		}
+	}
+	userID := middleware.GetLoginUserIDFromContext(ctx)
+	resp, err := c.aiChatConfigService.ListUserImageGenerations(ctx, userID, limit)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (c *AIController) GetImageAsset(ctx *gin.Context) {
+	if c.aiChatConfigService == nil {
+		handler.HandleResponse(ctx, errors.BadRequest("ai chat config is not available"), nil)
+		return
+	}
+	userID := middleware.GetLoginUserIDFromContext(ctx)
+	filePath, err := c.aiChatConfigService.GetUserImageFilePath(
+		ctx,
+		userID,
+		ctx.Param("user_id"),
+		ctx.Param("filename"),
+	)
+	if err != nil {
+		handler.HandleResponse(ctx, err, nil)
+		return
+	}
+	ctx.File(filePath)
 }
 
 type ChatCompletionsRequest struct {

@@ -252,6 +252,7 @@ const Users: FC = () => {
           <tr>
             <th>{t('name')}</th>
             <th style={{ width: '12%' }}>{t('reputation')}</th>
+            <th style={{ width: '10%' }}>{t('points')}</th>
             <th style={{ width: '15%' }} className="min-w-15">
               {t('email')}
             </th>
@@ -299,6 +300,7 @@ const Users: FC = () => {
                   />
                 </td>
                 <td>{formatCount(user.rank)}</td>
+                <td>{formatCount(user.point_balance || 0)}</td>
                 <td className="text-break">{user.e_mail}</td>
                 <td>
                   <FormatTime time={user.created_at} />

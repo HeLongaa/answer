@@ -18,7 +18,7 @@
  */
 
 import { FC, useEffect, useState } from 'react';
-import { ListGroup, Dropdown } from 'react-bootstrap';
+import { Button, ListGroup, Dropdown } from 'react-bootstrap';
 import { NavLink, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -28,16 +28,14 @@ import {
   Pagination,
   FormatTime,
   Empty,
-  BaseUserCard,
   QueryGroup,
   QuestionListLoader,
-  Counts,
-  PinList,
   Icon,
+  Avatar,
 } from '@/components';
 import * as Type from '@/common/interface';
 import { useSkeletonControl } from '@/hooks';
-import { sortTagsForDisplay } from '@/utils';
+import { formatCount, sortTagsForDisplay } from '@/utils';
 import Storage from '@/utils/storage';
 import { LIST_VIEW_STORAGE_KEY } from '@/common/constants';
 
@@ -57,6 +55,7 @@ interface Props {
   data;
   orderList?: Type.QuestionOrderBy[];
   isLoading: boolean;
+  onRefresh?: () => Promise<any>;
 }
 
 const QuestionList: FC<Props> = ({
@@ -65,6 +64,7 @@ const QuestionList: FC<Props> = ({
   data,
   orderList,
   isLoading = false,
+  onRefresh,
 }) => {
   const { t } = useTranslation('translation', { keyPrefix: 'question' });
   const navigate = useNavigate();
@@ -85,6 +85,7 @@ const QuestionList: FC<Props> = ({
   );
 
   const [viewType, setViewType] = useState('card');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleViewMode = (key) => {
     Storage.set(LIST_VIEW_STORAGE_KEY, key);
@@ -93,6 +94,94 @@ const QuestionList: FC<Props> = ({
 
   const handleNavigate = (href) => {
     navigate(href);
+  };
+
+  const handleRefresh = async () => {
+    if (!onRefresh || isRefreshing) {
+      return;
+    }
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const renderQuestionItem = (li, isPinned = false) => {
+    const itemUrl = pathFactory.questionLanding(li.id, li.url_title);
+    const activityTime = curOrder === 'active' ? li.operated_at : li.created_at;
+    const isAccepted = Number(li.accepted_answer_id) >= 1;
+
+    return (
+      <ListGroup.Item
+        key={li.id}
+        action
+        as="li"
+        onClick={() => handleNavigate(itemUrl)}
+        className={`question-list-row border-end-0 pointer ${
+          li.featured ? 'question-list-row-featured' : 'border-start-0'
+        }`}>
+        <div className="question-list-grid">
+          <Avatar
+            avatar={li.operator?.avatar}
+            size="48px"
+            searchStr="s=96"
+            className="question-list-mobile-avatar rounded-2"
+            alt={li.operator?.display_name}
+          />
+          <div className="question-list-main">
+            <h5 className="question-list-title text-wrap text-break">
+              <NavLink
+                className="question-list-title-link link-dark"
+                onClick={(e) => e.stopPropagation()}
+                to={itemUrl}>
+                {li.featured ? (
+                  <span className="question-featured-badge">精选</span>
+                ) : null}
+                {isPinned ? (
+                  <Icon name="pin-angle-fill question-list-title-icon" />
+                ) : null}
+                <span>{li.title}</span>
+                {li.status === 2 ? (
+                  <span className="question-list-closed">[{t('closed')}]</span>
+                ) : null}
+              </NavLink>
+            </h5>
+
+            <div className="question-tags question-list-tags">
+              {Array.isArray(li.tags)
+                ? sortTagsForDisplay(li.tags).map((tag, index, arr) => {
+                    return (
+                      <Tag
+                        key={tag.slug_name}
+                        className={`${arr.length - 1 === index ? '' : 'me-1'}`}
+                        data={tag}
+                      />
+                    );
+                  })
+                : null}
+            </div>
+          </div>
+
+          <div
+            className={`question-list-metric question-list-answer ${
+              isAccepted ? 'question-list-answer-accepted' : ''
+            }`}>
+            <span className="question-list-mobile-label">{t('answers')}</span>
+            <span>{formatCount(li.answer_count)}</span>
+          </div>
+          <div className="question-list-metric question-list-views">
+            <span className="question-list-mobile-label">{t('views')}</span>
+            <span>{formatCount(li.view_count)}</span>
+          </div>
+          <div className="question-list-activity">
+            <span className="question-list-mobile-label">{t('activity')}</span>
+            <FormatTime time={activityTime} className="text-secondary" />
+          </div>
+        </div>
+      </ListGroup.Item>
+    );
   };
 
   useEffect(() => {
@@ -110,15 +199,29 @@ const QuestionList: FC<Props> = ({
               ? t('x_posts', { count })
               : t('x_questions', { count })}
         </h5>
-        <div className="d-flex flex-wrap">
+        <div className="d-flex flex-wrap align-items-center gap-2">
           <QueryGroup
             data={orderKeys}
             currentSort={curOrder}
             pathname={source === 'questions' ? '/questions' : ''}
             i18nKeyPrefix="question"
             maxBtnCount={source === 'tag' ? 3 : 4}
-            wrapClassName="me-2"
           />
+          {onRefresh ? (
+            <Button
+              className="question-list-refresh"
+              variant="outline-secondary"
+              size="sm"
+              disabled={isRefreshing}
+              title={t('refresh')}
+              aria-label={t('refresh')}
+              onClick={handleRefresh}>
+              <Icon
+                name="arrow-clockwise"
+                className={isRefreshing ? 'question-list-refreshing' : ''}
+              />
+            </Button>
+          ) : null}
           <Dropdown align="end" drop="down" onSelect={handleViewMode}>
             <Dropdown.Toggle variant="outline-secondary" size="sm">
               <Icon name={viewType === 'card' ? 'view-stacked' : 'list'} />
@@ -147,76 +250,20 @@ const QuestionList: FC<Props> = ({
           </Dropdown>
         </div>
       </div>
-      <ListGroup className="rounded-0">
+      <div className="question-list-table-head">
+        <span>{t('questions')}</span>
+        <span>{t('answers')}</span>
+        <span>{t('views')}</span>
+        <span>{t('activity')}</span>
+      </div>
+      <ListGroup
+        className={`question-list-dense question-list-view-${viewType} rounded-0`}>
         {isSkeletonShow ? (
           <QuestionListLoader />
         ) : (
           <>
-            <PinList data={pinData} />
-            {renderData?.map((li) => {
-              return (
-                <ListGroup.Item
-                  key={li.id}
-                  action
-                  as="li"
-                  onClick={() =>
-                    handleNavigate(
-                      pathFactory.questionLanding(li.id, li.url_title),
-                    )
-                  }
-                  className="py-3 px-2 border-start-0 border-end-0 position-relative pointer">
-                  <div className="d-flex flex-wrap text-secondary small mb-12">
-                    <BaseUserCard
-                      data={li.operator}
-                      className="me-1"
-                      avatarClass="me-1"
-                    />
-                    •
-                    <FormatTime
-                      time={
-                        curOrder === 'active' ? li.operated_at : li.created_at
-                      }
-                      className="text-secondary ms-1 flex-shrink-0"
-                    />
-                  </div>
-                  <h5 className="text-wrap text-break">
-                    <NavLink
-                      className="link-dark d-block"
-                      onClick={(e) => e.stopPropagation()}
-                      to={pathFactory.questionLanding(li.id, li.url_title)}>
-                      {li.title}
-                      {li.status === 2 ? ` [${t('closed')}]` : ''}
-                    </NavLink>
-                  </h5>
-                  <div className="question-tags mb-12">
-                    {Array.isArray(li.tags)
-                      ? sortTagsForDisplay(li.tags).map((tag, index, arr) => {
-                          return (
-                            <Tag
-                              key={tag.slug_name}
-                              className={`${
-                                arr.length - 1 === index ? '' : 'me-1'
-                              }`}
-                              data={tag}
-                            />
-                          );
-                        })
-                      : null}
-                  </div>
-                  <div className="small text-secondary">
-                    <Counts
-                      data={{
-                        votes: li.vote_count,
-                        answers: li.answer_count,
-                        views: li.view_count,
-                      }}
-                      isAccepted={li.accepted_answer_id >= 1}
-                      className="mt-2 mt-md-0"
-                    />
-                  </div>
-                </ListGroup.Item>
-              );
-            })}
+            {pinData?.map((li) => renderQuestionItem(li, true))}
+            {renderData?.map((li) => renderQuestionItem(li))}
           </>
         )}
       </ListGroup>

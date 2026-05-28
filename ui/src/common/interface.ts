@@ -254,6 +254,7 @@ export interface QuestionDetailRes {
   answered: boolean;
   collected: boolean;
   answer_ids: string[];
+  featured?: boolean;
 
   [prop: string]: any;
 }
@@ -905,6 +906,71 @@ export interface AiChatModel {
   consume_rate: number;
   enabled: boolean;
   supports_vision: boolean;
+}
+
+export interface AiImageModel {
+  id: number;
+  provider_id: number;
+  provider_name: string;
+  site_model_id: string;
+  provider_model_id: string;
+  display_name: string;
+  description: string;
+  default_size: string;
+  enabled: boolean;
+  sort_order: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AiImageGeneration {
+  id: number;
+  generation_id: string;
+  user_id: string;
+  site_model_id: string;
+  provider_id: number;
+  provider_name: string;
+  provider_model_id: string;
+  prompt: string;
+  negative_prompt: string;
+  aspect_ratio: string;
+  size: string;
+  style: string;
+  quality: string;
+  count: number;
+  image_urls: string[];
+  status: string;
+  error: string;
+  expires_at: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AiImageGenerateParams {
+  prompt: string;
+  negative_prompt?: string;
+  model: string;
+  aspect_ratio?: string;
+  size?: string;
+  style?: string;
+  quality?: string;
+  count: number;
+  reference_images?: string[];
+}
+
+export interface AiImageEditParams {
+  prompt: string;
+  image_url: string;
+  model: string;
+  size?: string;
+  quality?: string;
+}
+
+export interface AiImageGenerateResult {
+  generation_id: string;
+  size: string;
+  image_urls: string[];
+  expires_at: number;
 }
 
 export interface AiSubscriptionOverview {

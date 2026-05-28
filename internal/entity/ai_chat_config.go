@@ -146,3 +146,66 @@ type AIChatUsageLog struct {
 }
 
 func (AIChatUsageLog) TableName() string { return "ai_chat_usage_logs" }
+
+type AIImageProvider struct {
+	ID        int       `xorm:"not null pk autoincr INT(11) id"`
+	Name      string    `xorm:"not null default '' VARCHAR(255) name"`
+	BaseURL   string    `xorm:"not null default '' VARCHAR(500) base_url"`
+	APIKey    string    `xorm:"not null TEXT api_key"`
+	Enabled   bool      `xorm:"not null default true BOOL enabled"`
+	Remark    string    `xorm:"not null TEXT remark"`
+	CreatedAt time.Time `xorm:"created not null default CURRENT_TIMESTAMP TIMESTAMP created_at"`
+	UpdatedAt time.Time `xorm:"updated not null default CURRENT_TIMESTAMP TIMESTAMP updated_at"`
+}
+
+func (AIImageProvider) TableName() string { return "ai_image_providers" }
+
+type AIImageModel struct {
+	ID              int       `xorm:"not null pk autoincr INT(11) id"`
+	ProviderID      int       `xorm:"not null index INT(11) provider_id"`
+	SiteModelID     string    `xorm:"not null unique VARCHAR(100) site_model_id"`
+	ProviderModelID string    `xorm:"not null default '' VARCHAR(255) provider_model_id"`
+	DisplayName     string    `xorm:"not null default '' VARCHAR(255) display_name"`
+	Description     string    `xorm:"not null TEXT description"`
+	DefaultSize     string    `xorm:"not null default '1024x1024' VARCHAR(50) default_size"`
+	Enabled         bool      `xorm:"not null default true BOOL enabled"`
+	SortOrder       int       `xorm:"not null default 0 INT(11) sort_order"`
+	CreatedAt       time.Time `xorm:"created not null default CURRENT_TIMESTAMP TIMESTAMP created_at"`
+	UpdatedAt       time.Time `xorm:"updated not null default CURRENT_TIMESTAMP TIMESTAMP updated_at"`
+}
+
+func (AIImageModel) TableName() string { return "ai_image_models" }
+
+type AIImageSetting struct {
+	ID            int       `xorm:"not null pk INT(11) id"`
+	RetentionDays int      `xorm:"not null default 30 INT(11) retention_days"`
+	CreatedAt     time.Time `xorm:"created not null default CURRENT_TIMESTAMP TIMESTAMP created_at"`
+	UpdatedAt     time.Time `xorm:"updated not null default CURRENT_TIMESTAMP TIMESTAMP updated_at"`
+}
+
+func (AIImageSetting) TableName() string { return "ai_image_settings" }
+
+type AIImageGeneration struct {
+	ID              int       `xorm:"not null pk autoincr INT(11) id"`
+	GenerationID    string    `xorm:"not null unique VARCHAR(100) generation_id"`
+	UserID          string    `xorm:"not null index VARCHAR(100) user_id"`
+	SiteModelID     string    `xorm:"not null default '' VARCHAR(100) site_model_id"`
+	ProviderID      int       `xorm:"not null default 0 INT(11) provider_id"`
+	ProviderName    string    `xorm:"not null default '' VARCHAR(255) provider_name"`
+	ProviderModelID string    `xorm:"not null default '' VARCHAR(255) provider_model_id"`
+	Prompt          string    `xorm:"not null TEXT prompt"`
+	NegativePrompt  string    `xorm:"not null TEXT negative_prompt"`
+	AspectRatio     string    `xorm:"not null default '' VARCHAR(50) aspect_ratio"`
+	Size            string    `xorm:"not null default '' VARCHAR(50) size"`
+	Style           string    `xorm:"not null default '' VARCHAR(100) style"`
+	Quality         string    `xorm:"not null default '' VARCHAR(100) quality"`
+	Count           int       `xorm:"not null default 1 INT(11) count"`
+	ImageURLs       string    `xorm:"not null TEXT image_urls"`
+	Status          string    `xorm:"not null default 'completed' VARCHAR(50) status"`
+	Error           string    `xorm:"not null TEXT error"`
+	ExpiresAt       time.Time `xorm:"DATETIME expires_at"`
+	CreatedAt       time.Time `xorm:"created not null default CURRENT_TIMESTAMP TIMESTAMP created_at"`
+	UpdatedAt       time.Time `xorm:"updated not null default CURRENT_TIMESTAMP TIMESTAMP updated_at"`
+}
+
+func (AIImageGeneration) TableName() string { return "ai_image_generations" }

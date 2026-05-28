@@ -100,11 +100,11 @@ backend:
     rank_link_url_limit_label:
       other: 每次发布超过 2 个链接
     rank_question_vote_up_label:
-      other: 点赞问题
+      other: 点赞话题
     rank_answer_vote_up_label:
       other: 点赞答案
     rank_question_vote_down_label:
-      other: 点踩问题
+      other: 点踩话题
     rank_answer_vote_down_label:
       other: 点踩答案
     rank_invite_someone_to_answer_label:
@@ -114,15 +114,15 @@ backend:
     rank_tag_edit_label:
       other: 编辑标签描述（需要审核）
     rank_question_edit_label:
-      other: 编辑别人的问题（需要审核）
+      other: 编辑别人的话题（需要审核）
     rank_answer_edit_label:
       other: 编辑别人的答案（需要审核）
     rank_question_edit_without_review_label:
-      other: 编辑别人的问题无需审核
+      other: 编辑别人的话题无需审核
     rank_answer_edit_without_review_label:
       other: 编辑别人的答案无需审核
     rank_question_audit_label:
-      other: 审核问题编辑
+      other: 审核话题编辑
     rank_answer_audit_label:
       other: 审核回答编辑
     rank_tag_audit_label:
@@ -171,7 +171,7 @@ backend:
       cannot_update:
         other: 没有更新权限。
       question_closed_cannot_add:
-        other: 问题已关闭，无法添加。
+        other: 话题已关闭，无法添加。
       content_cannot_empty:
         other: 回答内容不能为空。
     comment:
@@ -225,7 +225,7 @@ backend:
       under_review:
         other: 您的帖子正在等待审核。它将在它获得批准后可见。
       not_found:
-        other: 问题未找到。
+        other: 话题未找到。
       cannot_deleted:
         other: 没有删除权限。
       cannot_close:
@@ -353,14 +353,14 @@ backend:
       name:
         other: 重复内容
       desc:
-        other: 该问题有人问过，而且已经有了答案。
+        other: 该话题有人问过，而且已经有了答案。
       placeholder:
-        other: 输入已有的问题链接
+        other: 输入已有的话题链接
     not_a_answer:
       name:
         other: 不是答案
       desc:
-        other: "该帖是作为答案发布的，但它并没有试图回答这个问题。总之，它可能应该是个编辑、评论、另一个问题或者需要被删除。"
+        other: "该帖是作为答案发布的，但它并没有试图回答这个话题。总之，它可能应该是个编辑、评论、另一个话题或者需要被删除。"
     no_longer_needed:
       name:
         other: 不再需要
@@ -377,12 +377,12 @@ backend:
       name:
         other: 社区特定原因
       desc:
-        other: 该问题不符合社区准则。
+        other: 该话题不符合社区准则。
     not_clarity:
       name:
         other: 需要细节或澄清
       desc:
-        other: 该问题目前涵盖多个问题。它应该侧重在一个问题上。
+        other: 该话题目前涵盖多个话题。它应该侧重在一个话题上。
     looks_ok:
       name:
         other: 看起来没问题
@@ -392,12 +392,12 @@ backend:
       name:
         other: 需要编辑，我已做了修改。
       desc:
-        other: 改进和纠正你自己帖子中的问题。
+        other: 改进和纠正你自己帖子中的话题。
     needs_close:
       name:
         other: 需要关闭
       desc:
-        other: 关闭的问题不能回答，但仍然可以编辑、投票和评论。
+        other: 关闭的话题不能回答，但仍然可以编辑、投票和评论。
     needs_delete:
       name:
         other: 需要删除
@@ -409,17 +409,17 @@ backend:
         name:
           other: 垃圾信息
         desc:
-          other: 此问题以前就有人问过，而且已经有了答案。
+          other: 此话题以前就有人问过，而且已经有了答案。
       guideline:
         name:
           other: 社区特定原因
         desc:
-          other: 该问题不符合社区准则。
+          other: 该话题不符合社区准则。
       multiple:
         name:
           other: 需要细节或澄清
         desc:
-          other: 该问题目前涵盖多个问题。它应该只集中在一个问题上。
+          other: 该话题目前涵盖多个话题。它应该只集中在一个话题上。
       other:
         name:
           other: 其他原因
@@ -433,9 +433,9 @@ backend:
       modified:
         other: 修改于
     deleted_title:
-      other: 删除的问题
+      other: 删除的话题
     questions_title:
-      other: 问题
+      other: 话题
   tag:
     tags_title:
       other: 标签
@@ -444,15 +444,15 @@ backend:
   notification:
     action:
       update_question:
-        other: 更新了问题
+        other: 更新了话题
       answer_the_question:
-        other: 回答了问题
+        other: 回答了话题
       update_answer:
         other: 更新了答案
       accept_answer:
         other: 采纳了答案
       comment_question:
-        other: 评论了问题
+        other: 评论了话题
       comment_answer:
         other: 评论了答案
       reply_to_you:
@@ -460,17 +460,17 @@ backend:
       mention_you:
         other: 提到了你
       your_question_is_closed:
-        other: 你的问题已被关闭
+        other: 你的话题已被关闭
       your_question_was_deleted:
-        other: 你的问题已被删除
+        other: 你的话题已被删除
       your_answer_was_deleted:
         other: 你的答案已被删除
       your_comment_was_deleted:
         other: 你的评论已被删除
       up_voted_question:
-        other: 点赞问题
+        other: 点赞话题
       down_voted_question:
-        other: 点踩问题
+        other: 点踩话题
       up_voted_answer:
         other: 点赞答案
       down_voted_answer:
@@ -480,7 +480,7 @@ backend:
       invited_you_to_answer:
         other: 邀请你回答
       new_question_followed_tag:
-        other: 在你关注的标签中发布了新问题
+        other: 在你关注的标签中发布了新话题
       earned_badge:
         other: 你获得 "{{.BadgeName}}" 徽章
   email_tpl:
@@ -491,12 +491,12 @@ backend:
         other: "请点击以下链接确认你在 {{.SiteName}} 上的新邮箱地址：<br>\n<a href='{{.ChangeEmailUrl}}' target='_blank'>{{.ChangeEmailUrl}}</a><br><br>\n\n如果你没有请求此更改，请忽略此邮件。\n\n--<br>\n这是系统自动发送的电子邮件，请勿回复，因为您的回复将不会被看到<br><br>"
     new_answer:
       title:
-        other: "[{{.SiteName}}] {{.DisplayName}} 回答了你的问题"
+        other: "[{{.SiteName}}] {{.DisplayName}} 回答了你的话题"
       body:
         other: "<a href='{{.AnswerUrl}}'>{{.QuestionTitle}}</a><br><br>\n\n{{.DisplayName}}：<br>\n<blockquote>{{.AnswerSummary}}</blockquote><br>\n<a href='{{.AnswerUrl}}'>在 {{.SiteName}} 上查看</a><br><br>\n\n--<br>\n这是系统自动发送的电子邮件，请勿回复，因为您的回复将不会被看到<br><br>\n\n<small><a href='{{.UnsubscribeUrl}}'>取消订阅</a></small>"
     invited_you_to_answer:
       title:
-        other: "[{{.SiteName}}] {{.DisplayName}} 邀请您回答问题"
+        other: "[{{.SiteName}}] {{.DisplayName}} 邀请您回答话题"
       body:
         other: "<a href='{{.InviteUrl}}'>{{.QuestionTitle}}</a><br><br>\n\n{{.DisplayName}}：<br>\n<blockquote>我想你可能知道答案。</blockquote><br>\n<a href='{{.InviteUrl}}'>在 {{.SiteName}} 上查看</a><br><br>\n\n--<br>\n这是系统自动发送的电子邮件，请勿回复，因为您的回复将不会被看到<br><br>\n\n<small><a href='{{.UnsubscribeUrl}}'>取消订阅</a></small>"
     new_comment:
@@ -506,7 +506,7 @@ backend:
         other: "<a href='{{.CommentUrl}}'>{{.QuestionTitle}}</a><br><br>\n\n{{.DisplayName}}：<br>\n<blockquote>{{.CommentSummary}}</blockquote><br>\n<a href='{{.CommentUrl}}'>在 {{.SiteName}} 上查看</a><br><br>\n\n--<br>\n这是系统自动发送的电子邮件，请勿回复，因为您的回复将不会被看到<br><br>\n\n<small><a href='{{.UnsubscribeUrl}}'>取消订阅</a></small>"
     new_question:
       title:
-        other: "[{{.SiteName}}] 新问题: {{.QuestionTitle}}"
+        other: "[{{.SiteName}}] 新话题: {{.QuestionTitle}}"
       body:
         other: "<a href='{{.QuestionUrl}}'>{{.QuestionTitle}}</a><br><br>\n<small>{{.Tags}}</small><br><br>\n\n--<br>\n这是系统自动发送的电子邮件，请勿回复，因为您的回复将不会被看到 <br><br>\n\n<small><a href='{{.UnsubscribeUrl}}'>取消订阅</a></small>"
     pass_reset:
@@ -595,7 +595,7 @@ backend:
         name:
           other: 学者
         desc:
-          other: 问了一个问题并接受了一个答案。
+          other: 问了一个话题并接受了一个答案。
       commentator:
         name:
           other: 评论员
@@ -753,34 +753,34 @@ backend:
           other: 回答得分为50或以上。
       nice_question:
         name:
-          other: 好问题
+          other: 好话题
         desc:
-          other: 问题得分为10或以上。
+          other: 话题得分为10或以上。
       good_question:
         name:
-          other: 好问题
+          other: 好话题
         desc:
-          other: 问题得分为25或更多。
+          other: 话题得分为25或更多。
       great_question:
         name:
-          other: 很棒的问题
+          other: 很棒的话题
         desc:
-          other: 问题得分为50或更多。
+          other: 话题得分为50或更多。
       popular_question:
         name:
-          other: 热门问题
+          other: 热门话题
         desc:
-          other: 问题有 500 个浏览量。
+          other: 话题有 500 个浏览量。
       notable_question:
         name:
-          other: 值得关注问题
+          other: 值得关注话题
         desc:
-          other: 问题有 1,000 个浏览量。
+          other: 话题有 1,000 个浏览量。
       famous_question:
         name:
-          other: 著名的问题
+          other: 著名的话题
         desc:
-          other: 问题有 5,000 个浏览量。
+          other: 话题有 5,000 个浏览量。
       popular_link:
         name:
           other: 热门链接
@@ -811,20 +811,20 @@ ui:
   how_to_format:
     title: 如何排版
     desc: >-
-      <ul class="mb-0"><li><p class="mb-2">引用问题或答案: <code>#4</code></p></li><li><p class="mb-2">添加链接</p><pre class="mb-2"><code>&lt;https://url.com&gt;<br/><br/>[标题](https://url.com)</code></pre></li><li><p class="mb-2">段落之间使用空行分隔</p></li><li><p class="mb-2"><em>_斜体_</em> 或者 **<strong>粗体</strong>**</p></li><li><p class="mb-2">使用  个空格缩进代码</p></li><li><p class="mb-2">在行首添加 <code>&gt;</code> 表示引用</p></li><li><p class="mb-2">反引号进行转义 <code>`像 _这样_`</code></p></li><li><p class="mb-2">使用 <code>```</code> 创建代码块</p><pre class="mb-0"><code>```<br/>这是代码块<br/>```</code></pre></li></ul>
+      <ul class="mb-0"><li><p class="mb-2">引用话题或答案: <code>#4</code></p></li><li><p class="mb-2">添加链接</p><pre class="mb-2"><code>&lt;https://url.com&gt;<br/><br/>[标题](https://url.com)</code></pre></li><li><p class="mb-2">段落之间使用空行分隔</p></li><li><p class="mb-2"><em>_斜体_</em> 或者 **<strong>粗体</strong>**</p></li><li><p class="mb-2">使用  个空格缩进代码</p></li><li><p class="mb-2">在行首添加 <code>&gt;</code> 表示引用</p></li><li><p class="mb-2">反引号进行转义 <code>`像 _这样_`</code></p></li><li><p class="mb-2">使用 <code>```</code> 创建代码块</p><pre class="mb-0"><code>```<br/>这是代码块<br/>```</code></pre></li></ul>
   pagination:
     prev: 上一页
     next: 下一页
   page_title:
-    question: 问题
-    questions: 问题
+    question: 话题
+    questions: 话题
     tag: 标签
     tags: 标签
     tag_wiki: 标签维基
     create_tag: 创建标签
     edit_tag: 编辑标签
-    ask_a_question: 创建问题
-    edit_question: 编辑问题
+    ask_a_question: 创建话题
+    edit_question: 编辑话题
     edit_answer: 编辑回答
     search: 搜索
     posts_containing: 帖子包含
@@ -856,7 +856,7 @@ ui:
     new: 新聊天
     ai_generate: 来自帖子的 AI，可能不准确。
     copy: 复制
-    ask_a_follow_up: 提出后续问题
+    ask_a_follow_up: 提出后续话题
     ask_placeholder: 提问
   notifications:
     title: 通知
@@ -872,7 +872,7 @@ ui:
       invites: 邀请
       votes: 投票
     answer: 回答
-    question: 问题
+    question: 话题
     badge_award: 徽章
   suspended:
     title: 你的账号账号已被封禁
@@ -996,7 +996,7 @@ ui:
   report_modal:
     flag_title: 我举报这篇帖子的原因是...
     close_title: 我关闭这篇帖子的原因是...
-    review_question_title: 审查问题
+    review_question_title: 审查话题
     review_answer_title: 审查回答
     review_comment_title: 审查评论
     btn_cancel: 取消
@@ -1103,9 +1103,9 @@ ui:
     btn_cancel: 取消
     show_more: "{{count}} 条剩余评论"
     tip_question: >-
-      使用评论提问更多信息或者提出改进意见。避免在评论里回答问题。
+      使用评论提问更多信息或者提出改进意见。避免在评论里回答话题。
     tip_answer: >-
-      使用评论对回答者进行回复，或者通知回答者你已更新了问题的内容。如果要补充或者完善问题的内容，请在原问题中更改。
+      使用评论对回答者进行回复，或者通知回答者你已更新了话题的内容。如果要补充或者完善话题的内容，请在原话题中更改。
     tip_vote: 它给帖子添加了一些有用的内容
   edit_answer:
     title: 编辑回答
@@ -1133,17 +1133,17 @@ ui:
       newest: 最新
     button_follow: 关注
     button_following: 已关注
-    tag_label: 个问题
+    tag_label: 个话题
     search_placeholder: 通过标签名称过滤
     no_desc: 此标签无描述。
     more: 更多
     wiki: 维基
   ask:
-    title: 创建问题
-    edit_title: 编辑问题
-    default_reason: 编辑问题
-    default_first_reason: 创建问题
-    similar_questions: 相似问题
+    title: 创建话题
+    edit_title: 编辑话题
+    default_reason: 编辑话题
+    default_first_reason: 创建话题
+    similar_questions: 相似话题
     form:
       fields:
         revision:
@@ -1159,8 +1159,8 @@ ui:
           msg:
             empty: 内容不能为空。
           hint:
-            optional_body: 描述这个问题是什么。
-            minimum_characters: "详细描述这个问题，至少需要 {{min_content_length}} 字符。"
+            optional_body: 描述这个话题是什么。
+            minimum_characters: "详细描述这个话题，至少需要 {{min_content_length}} 字符。"
         tags:
           label: 标签
           msg:
@@ -1173,10 +1173,10 @@ ui:
           label: 编辑备注
           placeholder: >-
             简单描述更改原因（更正拼写、修复语法、改进格式）
-    btn_post_question: 提交问题
+    btn_post_question: 提交话题
     btn_save_edits: 保存更改
-    answer_question: 回答自己的问题
-    post_question&answer: 提交问题和回答
+    answer_question: 回答自己的话题
+    post_question&answer: 提交话题和回答
   tag_selector:
     add_btn: 添加标签
     select_placeholder: 选择标签
@@ -1191,7 +1191,7 @@ ui:
     tag_required_text: 必选标签（至少一个）
   header:
     nav:
-      question: 问题
+      question: 话题
       tag: 标签
       user: 用户
       badges: 徽章
@@ -1201,6 +1201,7 @@ ui:
       admin: 后台管理
       review: 审查
       bookmark: 收藏夹
+      points: 我的积分
       moderation: 管理
     search:
       placeholder: 搜索
@@ -1341,11 +1342,11 @@ ui:
         label: 收件箱通知
         description: 你的提问有新的回答，评论，邀请回答和其他。
       all_new_question:
-        label: 所有新问题
-        description: 获取所有新问题的通知。每周最多有50个问题。
+        label: 所有新话题
+        description: 获取所有新话题的通知。每周最多有50个话题。
       all_new_question_for_following_tags:
-        label: 所有关注标签的新问题
-        description: 获取关注的标签下新问题通知。
+        label: 所有关注标签的新话题
+        description: 获取关注的标签下新话题通知。
     account:
       heading: 账号
       change_email_btn: 更改邮箱
@@ -1413,16 +1414,16 @@ ui:
     edit: 编辑于
     commented: 评论
     Views: 阅读次数
-    Follow: 关注此问题
+    Follow: 关注此话题
     Following: 已关注
-    follow_tip: 关注此问题以接收通知
+    follow_tip: 关注此话题以接收通知
     answered: 回答于
     closed_in: 关闭于
-    show_exist: 查看类似问题。
+    show_exist: 查看类似话题。
     useful: 有用的
     question_useful: 它是有用和明确的
     question_un_useful: 它不明确或没用的
-    question_bookmark: 收藏该问题
+    question_bookmark: 收藏该话题
     answer_useful: 这是有用的
     answer_un_useful: 它是没有用的
     answers:
@@ -1445,7 +1446,7 @@ ui:
       characters: 内容长度至少 6 个字符。
       tips:
         header_1: 感谢你的回答
-        li1_1: 请务必确定在 <strong>回答问题</strong>。提供详细信息并分享你的研究。
+        li1_1: 请务必确定在 <strong>回答话题</strong>。提供详细信息并分享你的研究。
         li1_2: 用参考资料或个人经历来支持你所做的任何陈述。
         header_2: 但是 <strong>请避免</strong>...
         li2_1: 请求帮助，寻求澄清，或答复其他答案。
@@ -1496,7 +1497,7 @@ ui:
     discard_draft: 丢弃草稿
     pinned: 已置顶
     all: 全部
-    question: 问题
+    question: 话题
     answer: 回答
     comment: 评论
     refresh: 刷新
@@ -1550,9 +1551,9 @@ ui:
       title: 高级搜索提示
       tag: "<1>[tag]</1> 在指定标签中搜索"
       user: "<1>user:username</1> 根据作者搜索"
-      answer: "<1>answers:0</1> 搜索未回答的问题"
+      answer: "<1>answers:0</1> 搜索未回答的话题"
       score: "<1>score:3</1> 评分 3+ 的帖子"
-      question: "<1>is:question</1> 搜索问题"
+      question: "<1>is:question</1> 搜索话题"
       is_answer: "<1>is:answer</1> 搜索回答"
     empty: 找不到任何相关的内容。<br /> 请尝试其他关键字，或者减少查找内容的长度。
   share:
@@ -1585,14 +1586,16 @@ ui:
     following_tags: 已关注的标签
     edit: 编辑
     save: 保存
-    follow_tag_tip: 关注标签来筛选你的问题列表。
-    hot_questions: 热门问题
-    all_questions: 全部问题
-    x_questions: "{{ count }} 个问题"
+    follow_tag_tip: 关注标签来筛选你的话题列表。
+    hot_questions: 热门话题
+    all_questions: 全部话题
+    x_questions: "{{ count }} 个话题"
     x_answers: "{{ count }} 个回答"
     x_posts: "{{ count }} 个帖子"
-    questions: 问题
+    questions: 话题
     answers: 回答
+    views: 浏览量
+    activity: 活动
     newest: 最新
     active: 活跃
     hot: 热门
@@ -1611,8 +1614,8 @@ ui:
     overview: 概览
     answers: 回答
     answer: 回答
-    questions: 问题
-    question: 问题
+    questions: 话题
+    question: 话题
     bookmarks: 收藏
     reputation: 声望
     comments: 评论
@@ -1629,7 +1632,7 @@ ui:
     about_me: 关于我
     about_me_empty: "// Hello, World!"
     top_answers: 高分回答
-    top_questions: 高分问题
+    top_questions: 高分话题
     stats: 状态
     list_empty: 没有找到相关的内容。<br />试试看其他选项卡？
     content_empty: 未找到帖子。
@@ -1642,7 +1645,7 @@ ui:
     x_reputation: 声望
     x_votes: 得票
     x_answers: 个回答
-    x_questions: 个问题
+    x_questions: 个话题
     recent_badges: 最近的徽章
   install:
     title: 安装
@@ -1771,8 +1774,10 @@ ui:
   nav_menus:
     dashboard: 后台管理
     contents: 内容管理
-    questions: 问题
+    questions: 话题
     answers: 回答
+    tasks: 任务管理
+    featured_posts: 精选帖子
     users: 用户管理
     badges: 徽章
     flags: 举报管理
@@ -1831,7 +1836,7 @@ ui:
       title: 后台管理
       welcome: 欢迎来到管理后台！
       site_statistics: 站点统计
-      questions: "问题:"
+      questions: "话题:"
       resolved: "已解决:"
       unanswered: "未回答:"
       answers: "回答:"
@@ -1941,6 +1946,7 @@ ui:
       name: 名称
       email: 邮箱
       reputation: 声望
+      points: 积分
       created_at: 创建时间
       delete_at: 删除时间
       suspend_at: 封禁时间
@@ -1974,7 +1980,7 @@ ui:
         title: 删除此用户
         content: 确定要删除此用户？此操作无法撤销！
         remove: 移除内容
-        label: 删除所有问题、 答案、 评论等
+        label: 删除所有话题、 答案、 评论等
         text: 如果你只想删除用户账户，请不要选中此项。
       suspend_user:
         title: 挂起此用户
@@ -1982,7 +1988,7 @@ ui:
         label: 用户将被封禁多长时间？
         forever: 永久
     questions:
-      page_title: 问题
+      page_title: 话题
       unlisted: 已隐藏
       post: 标题
       votes: 得票数
@@ -1993,7 +1999,7 @@ ui:
       change: 更改
       pending: 等待处理
       filter:
-        placeholder: "按标题过滤，问题:id"
+        placeholder: "按标题过滤，话题:id"
     answers:
       page_title: 回答
       post: 标题
@@ -2120,15 +2126,15 @@ ui:
     write:
       page_title: 文件
       min_content:
-        label: 最小问题长度
-        text: 最小允许的问题内容长度（字符）。
+        label: 最小话题长度
+        text: 最小允许的话题内容长度（字符）。
       restrict_answer:
         title: 回答编辑
-        label: 每个用户对于每个问题只能有一个回答
+        label: 每个用户对于每个话题只能有一个回答
         text: "用户可以使用编辑按钮优化已有的回答"
       min_tags:
-        label: "问题的最少标签数"
-        text: "一个问题所需标签的最小数量。"
+        label: "话题的最少标签数"
+        text: "一个话题所需标签的最小数量。"
       recommend_tags:
         label: 推荐标签
         text: "推荐标签将默认显示在下拉列表中。"
@@ -2137,7 +2143,7 @@ ui:
       required_tag:
         title: 设置必填标签
         label: 设置“推荐标签”为必需的标签
-        text: "每个新问题必须至少有一个推荐标签。"
+        text: "每个新话题必须至少有一个推荐标签。"
       reserved_tags:
         label: 保留标签
         text: "只有版主才能使用保留的标签。"
@@ -2358,11 +2364,11 @@ ui:
   page_review:
     review: 评论
     proposed: 提案
-    question_edit: 问题编辑
+    question_edit: 话题编辑
     answer_edit: 回答编辑
     tag_edit: '标签管理: 编辑标签'
     edit_summary: 编辑备注
-    edit_question: 编辑问题
+    edit_question: 编辑话题
     edit_answer: 编辑回答
     edit_tag: 编辑标签
     empty: 没有剩余的审核任务。
@@ -2448,7 +2454,7 @@ ui:
     badge_activated: 此徽章已被激活。
     badge_inactivated: 此徽章已被禁用。
     users_deleted: 这些用户已被删除。
-    posts_deleted: 这些问题已被删除。
+    posts_deleted: 这些话题已被删除。
     answers_deleted: 这些答案已被删除。
     copy: 复制到剪贴板
     copied: 已复制

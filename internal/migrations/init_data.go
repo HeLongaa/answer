@@ -79,6 +79,11 @@ var (
 		&entity.APIKey{},
 		&entity.AIConversation{},
 		&entity.AIConversationRecord{},
+		&entity.Task{},
+		&entity.TaskSubmission{},
+		&entity.UserPointAccount{},
+		&entity.PointTransaction{},
+		&entity.FeaturedPost{},
 	}
 
 	roles = []*entity.Role{

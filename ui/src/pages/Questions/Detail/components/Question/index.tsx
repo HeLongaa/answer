@@ -20,7 +20,7 @@
 import { memo, FC, useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Button, Form, Modal, OverlayTrigger, Tooltip } from 'react-bootstrap';
 
 import {
   Tag,
@@ -34,8 +34,9 @@ import {
 } from '@/components';
 import { useRenderHtmlPlugin } from '@/utils/pluginKit';
 import { formatCount, guard, sortTagsForDisplay } from '@/utils';
-import { following } from '@/services';
+import { featurePost, following, revokeFeaturedPost } from '@/services';
 import { pathFactory } from '@/router/pathFactory';
+import { loggedUserInfoStore, toastStore } from '@/stores';
 
 interface Props {
   data: any;
@@ -50,7 +51,13 @@ const Index: FC<Props> = ({ data, initPage, hasAnswer, isLogged }) => {
   });
   const [searchParams] = useSearchParams();
   const [followed, setFollowed] = useState(data?.is_followed);
+  const [featuredOpen, setFeaturedOpen] = useState(false);
+  const [revokeFeaturedOpen, setRevokeFeaturedOpen] = useState(false);
+  const [featuredPoints, setFeaturedPoints] = useState(10);
+  const [featuredNote, setFeaturedNote] = useState('');
   const ref = useRef<HTMLDivElement>(null);
+  const userInfo = loggedUserInfoStore((state) => state.user);
+  const canFeature = userInfo?.role_id === 2 || userInfo?.role_id === 3;
 
   useRenderHtmlPlugin(ref.current);
 
@@ -72,6 +79,43 @@ const Index: FC<Props> = ({ data, initPage, hasAnswer, isLogged }) => {
       setFollowed(data?.is_followed);
     }
   }, [data]);
+
+  const handleFeaturePost = async () => {
+    try {
+      await featurePost({
+        question_id: data.id,
+        reward_points: featuredPoints,
+        note: featuredNote,
+      });
+      toastStore
+        .getState()
+        .show({ msg: '已精选，积分已处理', variant: 'success' });
+      setFeaturedOpen(false);
+      setFeaturedNote('');
+      initPage('default');
+    } catch (err: any) {
+      toastStore.getState().show({
+        msg: err?.msg || err?.message || '精选失败，请稍后重试',
+        variant: 'danger',
+      });
+    }
+  };
+
+  const handleRevokeFeaturedPost = async () => {
+    try {
+      await revokeFeaturedPost({ question_id: data.id });
+      toastStore
+        .getState()
+        .show({ msg: '已取消精选并收回积分', variant: 'success' });
+      setRevokeFeaturedOpen(false);
+      initPage('default');
+    } catch (err: any) {
+      toastStore.getState().show({
+        msg: err?.msg || err?.message || '取消精选失败，请稍后重试',
+        variant: 'danger',
+      });
+    }
+  };
 
   useEffect(() => {
     if (!ref.current) {
@@ -189,7 +233,24 @@ const Index: FC<Props> = ({ data, initPage, hasAnswer, isLogged }) => {
         <Comment
           objectId={data?.id}
           mode="question"
-          commentId={searchParams.get('commentId')}>
+          commentId={searchParams.get('commentId')}
+          reactionActions={
+            canFeature ? (
+              <Button
+                variant={data?.featured ? 'danger' : 'light'}
+                size="sm"
+                className={`rounded-pill ms-2 btn-reaction question-feature-action ${
+                  data?.featured ? '' : 'link-secondary'
+                }`}
+                onClick={() =>
+                  data?.featured
+                    ? setRevokeFeaturedOpen(true)
+                    : setFeaturedOpen(true)
+                }>
+                {data?.featured ? '取消精选' : '精选'}
+              </Button>
+            ) : null
+          }>
           <Operate
             qid={data?.id}
             type="question"
@@ -201,6 +262,62 @@ const Index: FC<Props> = ({ data, initPage, hasAnswer, isLogged }) => {
           />
         </Comment>
       </div>
+
+      <Modal show={featuredOpen} onHide={() => setFeaturedOpen(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>精选帖子</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>奖励积分</Form.Label>
+            <Form.Control
+              type="number"
+              min={1}
+              value={featuredPoints}
+              onChange={(evt) =>
+                setFeaturedPoints(Number(evt.target.value) || 0)
+              }
+            />
+          </Form.Group>
+          <Form.Group>
+            <Form.Label>说明</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              value={featuredNote}
+              onChange={(evt) => setFeaturedNote(evt.target.value)}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="link" onClick={() => setFeaturedOpen(false)}>
+            取消
+          </Button>
+          <Button disabled={featuredPoints <= 0} onClick={handleFeaturePost}>
+            精选并发积分
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={revokeFeaturedOpen}
+        onHide={() => setRevokeFeaturedOpen(false)}
+        centered>
+        <Modal.Header closeButton>
+          <Modal.Title>取消精选</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          确认取消精选吗？取消后会收回本次精选发放的积分。
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="link" onClick={() => setRevokeFeaturedOpen(false)}>
+            保留精选
+          </Button>
+          <Button variant="danger" onClick={handleRevokeFeaturedPost}>
+            确认取消
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };

@@ -180,6 +180,22 @@ func (ur *userAdminRepo) GetUserPage(ctx context.Context, page, pageSize int, us
 	return
 }
 
+func (ur *userAdminRepo) GetUserPointBalances(ctx context.Context, userIDs []string) (map[string]int, error) {
+	balances := make(map[string]int, len(userIDs))
+	if len(userIDs) == 0 {
+		return balances, nil
+	}
+	accounts := make([]*entity.UserPointAccount, 0, len(userIDs))
+	err := ur.data.DB.Context(ctx).In("user_id", userIDs).Find(&accounts)
+	if err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
+	}
+	for _, account := range accounts {
+		balances[account.UserID] = account.Balance
+	}
+	return balances, nil
+}
+
 // DeletePermanentlyUsers delete permanently users
 func (ur *userAdminRepo) DeletePermanentlyUsers(ctx context.Context) (err error) {
 	_, err = ur.data.DB.Context(ctx).Where("status = ?", entity.UserStatusDeleted).Delete(&entity.User{})

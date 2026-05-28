@@ -24,9 +24,10 @@ import { NavLink, useNavigate } from 'react-router-dom';
 
 import type * as Type from '@/common/interface';
 import { Avatar, Icon } from '@/components';
-import { floppyNavigation, isDarkTheme } from '@/utils';
+import { floppyNavigation, formatCount, isDarkTheme } from '@/utils';
 import { userCenterStore } from '@/stores';
 import { REACT_BASE_PATH } from '@/router/alias';
+import { usePointAccount } from '@/services/client/task';
 
 interface Props {
   redDot: Type.NotificationStatus | undefined;
@@ -37,6 +38,7 @@ interface Props {
 const Index: FC<Props> = ({ redDot, userInfo, logOut }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { data: pointAccount } = usePointAccount();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { agent: ucAgent } = userCenterStore();
   const handleLinkClick = (evt) => {
@@ -96,6 +98,19 @@ const Index: FC<Props> = ({ redDot, userInfo, logOut }) => {
         </Dropdown.Toggle>
 
         <Dropdown.Menu className="position-absolute">
+          <Dropdown.Item
+            className="user-points-summary d-flex align-items-center justify-content-between gap-3"
+            href={`${REACT_BASE_PATH}/users/settings/points`}
+            onClick={handleLinkClick}>
+            <span className="d-flex align-items-center gap-2">
+              <Icon name="coin" className="points-summary-icon" />
+              <span>{t('header.nav.points')}</span>
+            </span>
+            <span className="points-summary-balance">
+              {formatCount(pointAccount?.balance || 0)}
+            </span>
+          </Dropdown.Item>
+          <Dropdown.Divider />
           <Dropdown.Item
             href={`${REACT_BASE_PATH}/users/${userInfo.username}`}
             onClick={handleLinkClick}>

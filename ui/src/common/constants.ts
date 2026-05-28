@@ -27,6 +27,7 @@ export const CAPTCHA_CODE_STORAGE_KEY = '_a_captcha_';
 export const DRAFT_QUESTION_STORAGE_KEY = '_a_dq_';
 export const DRAFT_ANSWER_STORAGE_KEY = '_a_da_';
 export const DRAFT_TIMESIGH_STORAGE_KEY = '|_a_t_s_|';
+export const CHAT_WORKSPACE_STORAGE_KEY = '_a_chat_workspace_';
 export const DEFAULT_THEME = 'system';
 export const ADMIN_PRIVILEGE_CUSTOM_LEVEL = 99;
 export const SKELETON_SHOW_TIME = 1000;
@@ -99,6 +100,8 @@ export const ADMIN_NAV_MENUS = [
     icon: 'file-earmark-text-fill',
     children: [
       { name: 'questions', path: 'qa/questions', pathPrefix: 'qa/' },
+      { name: 'tasks', path: 'tasks' },
+      { name: 'featured_posts', path: 'featured-posts' },
       { name: 'tags', path: 'tags/settings', pathPrefix: 'tags/' },
     ],
   },

@@ -134,6 +134,7 @@ const Header: FC = () => {
     /^\/users\/[^/]+(\/(answers|questions|bookmarks|reputation|badges|votes))?$/.test(
       location.pathname,
     );
+  const isTaskPage = location.pathname.startsWith('/tasks');
   const isCommunityPage =
     location.pathname.startsWith('/questions') ||
     location.pathname.startsWith('/tags') ||
@@ -144,6 +145,7 @@ const Header: FC = () => {
   const isSideNavPage =
     location.pathname === '/' ||
     isSubscriptionPage ||
+    isTaskPage ||
     isCommunityPage ||
     location.pathname.startsWith('/admin');
   const isAuthFlowPage =
@@ -250,9 +252,13 @@ const Header: FC = () => {
               })}>
               社区
             </NavLink>
-            <button type="button" className="segment-item" aria-disabled="true">
-              支持
-            </button>
+            <NavLink
+              to="/tasks"
+              className={classnames('segment-item', {
+                active: isTaskPage,
+              })}>
+              任务广场
+            </NavLink>
             <button
               type="button"
               className={classnames('segment-item header-upgrade-segment', {

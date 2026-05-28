@@ -8725,6 +8725,23 @@
                 }
             }
         },
+        "schema.AIConversationFile": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "schema.AIConversationListItem": {
             "type": "object",
             "properties": {
@@ -8742,6 +8759,12 @@
         "schema.AIConversationRecord": {
             "type": "object",
             "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "branch_index": {
+                    "type": "integer"
+                },
                 "chat_completion_id": {
                     "type": "string"
                 },
@@ -8751,8 +8774,32 @@
                 "created_at": {
                     "type": "integer"
                 },
+                "deleted_at": {
+                    "type": "integer"
+                },
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.AIConversationFile"
+                    }
+                },
                 "helpful": {
                     "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "message_id": {
+                    "type": "string"
+                },
+                "parent_message_id": {
+                    "type": "string"
                 },
                 "role": {
                     "type": "string"
@@ -10698,6 +10745,10 @@
                     "description": "user status(normal,suspended,deleted,inactive)",
                     "type": "string"
                 },
+                "subscription_level": {
+                    "description": "subscription level",
+                    "type": "string"
+                },
                 "suspended_at": {
                     "description": "suspended time",
                     "type": "integer"
@@ -11067,6 +11118,9 @@
                         "$ref": "#/definitions/schema.PermissionMemberAction"
                     }
                 },
+                "featured": {
+                    "type": "boolean"
+                },
                 "first_answer_id": {
                     "type": "string"
                 },
@@ -11197,6 +11251,9 @@
                 },
                 "description": {
                     "type": "string"
+                },
+                "featured": {
+                    "type": "boolean"
                 },
                 "follow_count": {
                     "type": "integer"

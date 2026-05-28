@@ -21,6 +21,8 @@ import React from 'react';
 
 import ReactDOM from 'react-dom/client';
 
+import RealtimeEvents from '@/components/RealtimeEvents';
+
 import App from './App';
 
 import './index.scss';
@@ -86,6 +88,7 @@ document.addEventListener('click', handleClickLink, true);
 
 root.render(
   <React.StrictMode>
+    <RealtimeEvents />
     <App />
   </React.StrictMode>,
 );

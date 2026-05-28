@@ -54,6 +54,7 @@ var (
 		constant.AvatarThumbSubPath,
 		constant.PostSubPath,
 		constant.BrandingSubPath,
+		constant.AIImageSubPath,
 		constant.FilesPostSubPath,
 		constant.DeletedSubPath,
 	}

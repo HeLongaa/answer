@@ -39,7 +39,7 @@ const Index: FC<IProps> = ({ msg, variant = 'warning', onClose }) => {
         left: 0,
         right: 0,
         margin: 'auto',
-        zIndex: 5,
+        zIndex: 1100,
       }}>
       <Toast
         className="align-items-center border-0"

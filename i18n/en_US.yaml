@@ -1219,6 +1219,7 @@ ui:
       admin: Admin
       review: Review
       bookmark: Bookmarks
+      points: My points
       moderation: Moderation
     search:
       placeholder: Search
@@ -1626,6 +1627,8 @@ ui:
     x_posts: "{{ count }} Posts"
     questions: Questions
     answers: Answers
+    views: Views
+    activity: Activity
     newest: Newest
     active: Active
     hot: Hot
@@ -1980,6 +1983,7 @@ ui:
       name: Name
       email: Email
       reputation: Reputation
+      points: Points
       created_at: Created time
       delete_at: Deleted time
       suspend_at: Suspended time

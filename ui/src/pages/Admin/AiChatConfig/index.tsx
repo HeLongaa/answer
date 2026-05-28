@@ -40,9 +40,13 @@ import {
   createAiChatModelMapping,
   createAiChatProvider,
   createAiChatSubscriptionPlan,
+  createAdminAiImageModel,
+  createAdminAiImageProvider,
   deleteAiChatModelMapping,
   deleteAiChatProvider,
   deleteAiChatSubscriptionPlan,
+  deleteAdminAiImageModel,
+  deleteAdminAiImageProvider,
   fetchAiChatProviderModels,
   generateAiChatRedeemCodes,
   getAiChatConsumeRates,
@@ -50,11 +54,17 @@ import {
   getAiChatProviders,
   getAiChatRedeemCodes,
   getAiChatSubscriptionPlans,
+  getAdminAiImageModels,
+  getAdminAiImageProviders,
+  getAdminAiImageSetting,
   testAiChatProviderModel,
   updateAiChatConsumeRate,
   updateAiChatModelMapping,
   updateAiChatProvider,
   updateAiChatSubscriptionPlan,
+  updateAdminAiImageModel,
+  updateAdminAiImageProvider,
+  updateAdminAiImageSetting,
 } from '@/services';
 
 import './index.scss';
@@ -113,6 +123,31 @@ const rateInit = {
   remark: '',
 };
 
+const imageProviderInit = {
+  id: 0,
+  name: '',
+  base_url: 'https://api.openai.com/v1',
+  api_key: '',
+  enabled: true,
+  remark: '',
+};
+
+const imageModelInit = {
+  id: 0,
+  provider_id: 0,
+  site_model_id: '',
+  provider_model_id: '',
+  display_name: '',
+  description: '',
+  default_size: '1024x1024',
+  enabled: true,
+  sort_order: 0,
+};
+
+const imageSettingInit = {
+  retention_days: 30,
+};
+
 const redeemInit = {
   plan_id: 0,
   count: 10,
@@ -121,7 +156,14 @@ const redeemInit = {
   remark: '',
 };
 
-const tabKeys = ['providers', 'mappings', 'plans', 'redeem-codes', 'rates'];
+const tabKeys = [
+  'providers',
+  'mappings',
+  'plans',
+  'redeem-codes',
+  'rates',
+  'images',
+];
 
 const formatQuota = (value: number) => (value === -1 ? '无限制' : value);
 
@@ -141,10 +183,15 @@ const AiChatConfig = () => {
   const [plans, setPlans] = useState<any[]>([]);
   const [redeemCodes, setRedeemCodes] = useState<any[]>([]);
   const [rates, setRates] = useState<any[]>([]);
+  const [imageProviders, setImageProviders] = useState<any[]>([]);
+  const [imageModels, setImageModels] = useState<any[]>([]);
   const [providerForm, setProviderForm] = useState(providerInit);
   const [mappingForm, setMappingForm] = useState(mappingInit);
   const [planForm, setPlanForm] = useState(planInit);
   const [rateForm, setRateForm] = useState(rateInit);
+  const [imageProviderForm, setImageProviderForm] = useState(imageProviderInit);
+  const [imageModelForm, setImageModelForm] = useState(imageModelInit);
+  const [imageSettingForm, setImageSettingForm] = useState(imageSettingInit);
   const [redeemForm, setRedeemForm] = useState(redeemInit);
   const [generatedCodes, setGeneratedCodes] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState(
@@ -180,19 +227,33 @@ const AiChatConfig = () => {
     }
     setError('');
     try {
-      const [providerData, mappingData, planData, redeemCodeData, rateData] =
-        await Promise.all([
-          getAiChatProviders(),
-          getAiChatModelMappings(),
-          getAiChatSubscriptionPlans(),
-          getAiChatRedeemCodes(),
-          getAiChatConsumeRates(),
-        ]);
+      const [
+        providerData,
+        mappingData,
+        planData,
+        redeemCodeData,
+        rateData,
+        imageProviderData,
+        imageModelData,
+        imageSettingData,
+      ] = await Promise.all([
+        getAiChatProviders(),
+        getAiChatModelMappings(),
+        getAiChatSubscriptionPlans(),
+        getAiChatRedeemCodes(),
+        getAiChatConsumeRates(),
+        getAdminAiImageProviders(),
+        getAdminAiImageModels(),
+        getAdminAiImageSetting(),
+      ]);
       setProviders(providerData || []);
       setMappings(mappingData || []);
       setPlans(planData || []);
       setRedeemCodes(redeemCodeData || []);
       setRates(rateData || []);
+      setImageProviders(imageProviderData || []);
+      setImageModels(imageModelData || []);
+      setImageSettingForm(imageSettingData || imageSettingInit);
     } catch (err: any) {
       setError(err?.msg || '加载 AI-CHAT 配置失败');
     } finally {
@@ -302,6 +363,62 @@ const AiChatConfig = () => {
       await loadAll();
     } catch (err: any) {
       setError(err?.msg || '消耗系数保存失败');
+    }
+  };
+
+  const submitImageProvider = async (evt: FormEvent) => {
+    evt.preventDefault();
+    setError('');
+    try {
+      if (imageProviderForm.id) {
+        await updateAdminAiImageProvider(
+          imageProviderForm.id,
+          imageProviderForm,
+        );
+      } else {
+        await createAdminAiImageProvider(imageProviderForm);
+      }
+      setImageProviderForm(imageProviderInit);
+      showSuccess('生图 Provider 已保存');
+      await loadAll();
+    } catch (err: any) {
+      setError(err?.msg || '生图 Provider 保存失败');
+    }
+  };
+
+  const submitImageModel = async (evt: FormEvent) => {
+    evt.preventDefault();
+    setError('');
+    try {
+      const payload = {
+        ...imageModelForm,
+        provider_id: Number(imageModelForm.provider_id),
+        sort_order: Number(imageModelForm.sort_order),
+      };
+      if (imageModelForm.id) {
+        await updateAdminAiImageModel(imageModelForm.id, payload);
+      } else {
+        await createAdminAiImageModel(payload);
+      }
+      setImageModelForm(imageModelInit);
+      showSuccess('生图模型已保存');
+      await loadAll();
+    } catch (err: any) {
+      setError(err?.msg || '生图模型保存失败');
+    }
+  };
+
+  const submitImageSetting = async (evt: FormEvent) => {
+    evt.preventDefault();
+    setError('');
+    try {
+      await updateAdminAiImageSetting({
+        retention_days: Number(imageSettingForm.retention_days),
+      });
+      showSuccess('生图保存时间已更新');
+      await loadAll();
+    } catch (err: any) {
+      setError(err?.msg || '生图保存时间更新失败');
     }
   };
 
@@ -1363,6 +1480,339 @@ const AiChatConfig = () => {
               ))}
             </tbody>
           </Table>
+        </Tab>
+
+        <Tab eventKey="images" title="图片生成">
+          <Card className="mb-4">
+            <Card.Body>
+              <Form onSubmit={submitImageProvider}>
+                <Row>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Provider 名称</Form.Label>
+                      <Form.Control
+                        required
+                        value={imageProviderForm.name}
+                        onChange={(e) =>
+                          setImageProviderForm({
+                            ...imageProviderForm,
+                            name: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Base URL</Form.Label>
+                      <Form.Control
+                        required
+                        value={imageProviderForm.base_url}
+                        onChange={(e) =>
+                          setImageProviderForm({
+                            ...imageProviderForm,
+                            base_url: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>API Key</Form.Label>
+                      <Form.Control
+                        type="password"
+                        required={!imageProviderForm.id}
+                        placeholder={
+                          imageProviderForm.id ? '留空则保持原 API Key' : ''
+                        }
+                        value={imageProviderForm.api_key}
+                        onChange={(e) =>
+                          setImageProviderForm({
+                            ...imageProviderForm,
+                            api_key: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>备注</Form.Label>
+                      <Form.Control
+                        value={imageProviderForm.remark}
+                        onChange={(e) =>
+                          setImageProviderForm({
+                            ...imageProviderForm,
+                            remark: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Form.Check
+                  className="mb-3"
+                  type="switch"
+                  label="启用"
+                  checked={imageProviderForm.enabled}
+                  onChange={(e) =>
+                    setImageProviderForm({
+                      ...imageProviderForm,
+                      enabled: e.target.checked,
+                    })
+                  }
+                />
+                <Button type="submit">保存生图 Provider</Button>
+              </Form>
+            </Card.Body>
+          </Card>
+
+          <Table responsive hover className="mb-4">
+            <thead>
+              <tr>
+                <th>Provider</th>
+                <th>Base URL</th>
+                <th>状态</th>
+                <th>备注</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {imageProviders.map((provider) => (
+                <tr key={provider.id}>
+                  <td>{provider.name}</td>
+                  <td className="ai-chat-config-text-cell">
+                    {provider.base_url}
+                  </td>
+                  <td>{provider.enabled ? '启用' : '禁用'}</td>
+                  <td>{provider.remark}</td>
+                  <td className="ai-chat-config-action-cell">
+                    <Button
+                      size="sm"
+                      variant="outline-primary"
+                      onClick={() => setImageProviderForm(provider)}>
+                      编辑
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline-danger"
+                      onClick={async () => {
+                        await deleteAdminAiImageProvider(provider.id);
+                        await loadAll();
+                      }}>
+                      删除
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+
+          <Card className="mb-4">
+            <Card.Body>
+              <Form onSubmit={submitImageModel}>
+                <Row>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Provider</Form.Label>
+                      <Form.Select
+                        required
+                        value={imageModelForm.provider_id}
+                        onChange={(e) =>
+                          setImageModelForm({
+                            ...imageModelForm,
+                            provider_id: Number(e.target.value),
+                          })
+                        }>
+                        <option value={0}>请选择</option>
+                        {imageProviders.map((provider) => (
+                          <option key={provider.id} value={provider.id}>
+                            {provider.name}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>本站模型 ID</Form.Label>
+                      <Form.Control
+                        required
+                        value={imageModelForm.site_model_id}
+                        onChange={(e) =>
+                          setImageModelForm({
+                            ...imageModelForm,
+                            site_model_id: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>供应商模型 ID</Form.Label>
+                      <Form.Control
+                        required
+                        value={imageModelForm.provider_model_id}
+                        onChange={(e) =>
+                          setImageModelForm({
+                            ...imageModelForm,
+                            provider_model_id: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>默认尺寸</Form.Label>
+                      <Form.Control
+                        required
+                        value={imageModelForm.default_size}
+                        onChange={(e) =>
+                          setImageModelForm({
+                            ...imageModelForm,
+                            default_size: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col md={4}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>展示名称</Form.Label>
+                      <Form.Control
+                        value={imageModelForm.display_name}
+                        onChange={(e) =>
+                          setImageModelForm({
+                            ...imageModelForm,
+                            display_name: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={5}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>描述</Form.Label>
+                      <Form.Control
+                        value={imageModelForm.description}
+                        onChange={(e) =>
+                          setImageModelForm({
+                            ...imageModelForm,
+                            description: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>排序</Form.Label>
+                      <Form.Control
+                        type="number"
+                        value={imageModelForm.sort_order}
+                        onChange={(e) =>
+                          setImageModelForm({
+                            ...imageModelForm,
+                            sort_order: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Form.Check
+                  className="mb-3"
+                  type="switch"
+                  label="启用"
+                  checked={imageModelForm.enabled}
+                  onChange={(e) =>
+                    setImageModelForm({
+                      ...imageModelForm,
+                      enabled: e.target.checked,
+                    })
+                  }
+                />
+                <Button type="submit">保存生图模型</Button>
+              </Form>
+            </Card.Body>
+          </Card>
+
+          <Table responsive hover className="mb-4">
+            <thead>
+              <tr>
+                <th>本站模型 ID</th>
+                <th>Provider</th>
+                <th>供应商模型</th>
+                <th>默认尺寸</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {imageModels.map((model) => (
+                <tr key={model.id}>
+                  <td>{model.site_model_id}</td>
+                  <td>{model.provider_name}</td>
+                  <td>{model.provider_model_id}</td>
+                  <td>{model.default_size}</td>
+                  <td>{model.enabled ? '启用' : '禁用'}</td>
+                  <td className="ai-chat-config-action-cell">
+                    <Button
+                      size="sm"
+                      variant="outline-primary"
+                      onClick={() => setImageModelForm(model)}>
+                      编辑
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline-danger"
+                      onClick={async () => {
+                        await deleteAdminAiImageModel(model.id);
+                        await loadAll();
+                      }}>
+                      删除
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+
+          <Card>
+            <Card.Body>
+              <Form onSubmit={submitImageSetting}>
+                <Row className="align-items-end">
+                  <Col md={4}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>图片保存天数</Form.Label>
+                      <Form.Control
+                        required
+                        min={1}
+                        max={3650}
+                        type="number"
+                        value={imageSettingForm.retention_days}
+                        onChange={(e) =>
+                          setImageSettingForm({
+                            retention_days: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Button type="submit" className="mb-3">
+                      保存设置
+                    </Button>
+                  </Col>
+                </Row>
+              </Form>
+            </Card.Body>
+          </Card>
         </Tab>
       </Tabs>
       <Modal show={!!testingProvider} onHide={closeTestProvider} centered>

@@ -63,6 +63,9 @@ type AnswerAPIRouter struct {
 	aiConversationController      *controller.AIConversationController
 	aiConversationAdminController *controller_admin.AIConversationAdminController
 	mcpController                 *controller.MCPController
+	taskSquareController          *controller.TaskSquareController
+	taskSquareAdminController     *controller_admin.TaskSquareAdminController
+	realtimeController            *controller.RealtimeController
 }
 
 func NewAnswerAPIRouter(
@@ -102,6 +105,9 @@ func NewAnswerAPIRouter(
 	aiConversationController *controller.AIConversationController,
 	aiConversationAdminController *controller_admin.AIConversationAdminController,
 	mcpController *controller.MCPController,
+	taskSquareController *controller.TaskSquareController,
+	taskSquareAdminController *controller_admin.TaskSquareAdminController,
+	realtimeController *controller.RealtimeController,
 ) *AnswerAPIRouter {
 	return &AnswerAPIRouter{
 		langController:                langController,
@@ -140,6 +146,9 @@ func NewAnswerAPIRouter(
 		aiConversationController:      aiConversationController,
 		aiConversationAdminController: aiConversationAdminController,
 		mcpController:                 mcpController,
+		taskSquareController:          taskSquareController,
+		taskSquareAdminController:     taskSquareAdminController,
+		realtimeController:            realtimeController,
 	}
 }
 
@@ -226,6 +235,9 @@ func (a *AnswerAPIRouter) RegisterAuthUserWithAnyStatusAnswerAPIRouter(r *gin.Ro
 }
 
 func (a *AnswerAPIRouter) RegisterAnswerAPIRouter(r *gin.RouterGroup) {
+	// realtime
+	r.GET("/realtime/events", a.realtimeController.Events)
+
 	// revisions
 	r.GET("/revisions", a.revisionController.GetRevisionList)
 	r.GET("/revisions/unreviewed", a.revisionController.GetUnreviewedRevisionList)
@@ -333,6 +345,20 @@ func (a *AnswerAPIRouter) RegisterAnswerAPIRouter(r *gin.RouterGroup) {
 	r.GET("/ai-chat/subscription/overview", a.aiController.GetSubscriptionOverview)
 	r.GET("/ai-chat/subscription/purchase", a.aiController.GetSubscriptionPurchase)
 	r.POST("/ai-chat/subscription/redeem", a.aiController.RedeemSubscriptionCode)
+	r.GET("/ai-image/models", a.aiController.GetAIImageModels)
+	r.GET("/ai-image/generations", a.aiController.GetImageGenerations)
+	r.GET("/ai-image/assets/:user_id/:filename", a.aiController.GetImageAsset)
+	r.POST("/ai-image/generations", a.aiController.GenerateImage)
+	r.POST("/ai-image/edits", a.aiController.EditImage)
+
+	// task square
+	r.GET("/tasks", a.taskSquareController.ListTasks)
+	r.GET("/task", a.taskSquareController.GetTask)
+	r.POST("/task", a.taskSquareController.CreateTask)
+	r.POST("/task/claim", a.taskSquareController.ClaimTask)
+	r.POST("/task/submission", a.taskSquareController.SubmitTask)
+	r.GET("/points/account", a.taskSquareController.GetPointAccount)
+	r.GET("/points/transactions", a.taskSquareController.ListPointTransactions)
 
 	// AI conversation
 	r.GET("/ai/conversation/page", a.aiConversationController.GetConversationList)
@@ -454,6 +480,16 @@ func (a *AnswerAPIRouter) RegisterAnswerAdminAPIRouter(r *gin.RouterGroup) {
 	r.GET("/ai-chat/consume-rates", a.aiChatConfigController.ListConsumeRates)
 	r.POST("/ai-chat/consume-rates", a.aiChatConfigController.CreateConsumeRate)
 	r.PUT("/ai-chat/consume-rates/:id", a.aiChatConfigController.UpdateConsumeRate)
+	r.GET("/ai-chat/image-providers", a.aiChatConfigController.ListImageProviders)
+	r.POST("/ai-chat/image-providers", a.aiChatConfigController.CreateImageProvider)
+	r.PUT("/ai-chat/image-providers/:id", a.aiChatConfigController.UpdateImageProvider)
+	r.DELETE("/ai-chat/image-providers/:id", a.aiChatConfigController.DeleteImageProvider)
+	r.GET("/ai-chat/image-models", a.aiChatConfigController.ListImageModels)
+	r.POST("/ai-chat/image-models", a.aiChatConfigController.CreateImageModel)
+	r.PUT("/ai-chat/image-models/:id", a.aiChatConfigController.UpdateImageModel)
+	r.DELETE("/ai-chat/image-models/:id", a.aiChatConfigController.DeleteImageModel)
+	r.GET("/ai-chat/image-setting", a.aiChatConfigController.GetImageSetting)
+	r.PUT("/ai-chat/image-setting", a.aiChatConfigController.SaveImageSetting)
 
 	// ai config
 	r.GET("/ai-config", a.adminSiteInfoController.GetAIConfig)
@@ -469,4 +505,13 @@ func (a *AnswerAPIRouter) RegisterAnswerAdminAPIRouter(r *gin.RouterGroup) {
 	r.GET("/ai/conversation/page", a.aiConversationAdminController.GetConversationList)
 	r.GET("/ai/conversation", a.aiConversationAdminController.GetConversationDetail)
 	r.DELETE("/ai/conversation", a.aiConversationAdminController.DeleteConversation)
+
+	// task square
+	r.GET("/tasks", a.taskSquareAdminController.ListTasks)
+	r.PUT("/task/review", a.taskSquareAdminController.ReviewTask)
+	r.PUT("/task/assign", a.taskSquareAdminController.AssignTask)
+	r.PUT("/task/submission/review", a.taskSquareAdminController.ReviewSubmission)
+	r.GET("/featured-posts", a.taskSquareAdminController.ListFeaturedPosts)
+	r.POST("/featured-post", a.taskSquareAdminController.FeaturePost)
+	r.PUT("/featured-post/revoke", a.taskSquareAdminController.RevokeFeaturedPost)
 }

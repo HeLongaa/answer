@@ -30,12 +30,13 @@ import {
   useState,
 } from 'react';
 import { Modal, Spinner } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import dayjs from 'dayjs';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Avatar, Icon, htmlRender } from '@/components';
+import { CHAT_WORKSPACE_STORAGE_KEY } from '@/common/constants';
 import { usePageTags } from '@/hooks';
 import {
   getAiChatModels,
@@ -49,6 +50,7 @@ import {
 } from '@/services';
 import { brandingStore, loggedUserInfoStore, siteInfoStore } from '@/stores';
 import requestAi, { cancelCurrentRequest } from '@/utils/requestAi';
+import Storage from '@/utils/storage';
 import type {
   AiChatModel,
   AiSubscriptionOverview,
@@ -56,6 +58,7 @@ import type {
   ConversationListItem,
 } from '@/common/interface';
 
+import ImageGenerationWorkspace from './ImageGenerationWorkspace';
 import './index.scss';
 
 const navItems = [
@@ -64,6 +67,12 @@ const navItems = [
   { icon: 'credit-card-2-front', label: '订阅管理', action: 'subscription' },
   { icon: 'stars', label: '订阅兑换', action: 'redeem' },
 ];
+
+const getStoredWorkspace = () =>
+  Storage.get(CHAT_WORKSPACE_STORAGE_KEY) === 'image' ? 'image' : 'chat';
+
+const getWorkspaceFromSearchParams = (params: URLSearchParams) =>
+  params.get('workspace') === 'image' ? 'image' : undefined;
 
 const formatQuota = (value?: number) => {
   if (value === -1) {
@@ -266,11 +275,16 @@ const ChatMessageContent: FC<{ content: string; markdown: boolean }> = memo(
 
 const Chat: FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const siteInfo = siteInfoStore((state) => state.siteInfo);
   const brandingInfo = brandingStore((state) => state.branding);
   const loggedUser = loggedUserInfoStore((state) => state.user);
   const [conversationsOpen, setConversationsOpen] = useState(true);
+  const [activeWorkspace, setActiveWorkspace] = useState<'chat' | 'image'>(
+    () => getWorkspaceFromSearchParams(searchParams) || getStoredWorkspace(),
+  );
   const [mobileConversationsOpen, setMobileConversationsOpen] = useState(false);
+  const [mobileImageTasksOpen, setMobileImageTasksOpen] = useState(false);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const [subscriptionError, setSubscriptionError] = useState('');
@@ -331,6 +345,22 @@ const Chat: FC = () => {
     brandingInfo.favicon ||
     brandingInfo.mobile_logo ||
     brandingInfo.logo;
+
+  const switchWorkspace = useCallback(
+    (workspace: 'chat' | 'image') => {
+      setActiveWorkspace(workspace);
+      const nextSearchParams = new URLSearchParams(window.location.search);
+      if (workspace === 'image') {
+        Storage.set(CHAT_WORKSPACE_STORAGE_KEY, 'image');
+        nextSearchParams.set('workspace', 'image');
+      } else {
+        Storage.remove(CHAT_WORKSPACE_STORAGE_KEY);
+        nextSearchParams.delete('workspace');
+      }
+      setSearchParams(nextSearchParams, { replace: true });
+    },
+    [setSearchParams],
+  );
 
   usePageTags({
     title: 'HCAI-Chat',
@@ -466,6 +496,7 @@ const Chat: FC = () => {
     if (isGenerating) {
       cancelCurrentRequest();
     }
+    switchWorkspace('chat');
     setMobileConversationsOpen(false);
     setConversationID('');
     setMessages([]);
@@ -492,6 +523,7 @@ const Chat: FC = () => {
   };
 
   const handleLoadConversation = async (id: string) => {
+    switchWorkspace('chat');
     setMobileConversationsOpen(false);
     await loadConversation(id);
   };
@@ -511,7 +543,32 @@ const Chat: FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!modelMenuOpen && !attachmentMenuOpen && !mobileConversationsOpen) {
+    const urlWorkspace = getWorkspaceFromSearchParams(searchParams);
+    if (urlWorkspace) {
+      Storage.set(CHAT_WORKSPACE_STORAGE_KEY, urlWorkspace);
+      setActiveWorkspace(urlWorkspace);
+      return;
+    }
+
+    const storedWorkspace = getStoredWorkspace();
+    if (storedWorkspace === 'image') {
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.set('workspace', 'image');
+      setSearchParams(nextSearchParams, { replace: true });
+      setActiveWorkspace('image');
+      return;
+    }
+
+    setActiveWorkspace('chat');
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (
+      !modelMenuOpen &&
+      !attachmentMenuOpen &&
+      !mobileConversationsOpen &&
+      !mobileImageTasksOpen
+    ) {
       return undefined;
     }
     const handlePointerDown = (evt: PointerEvent) => {
@@ -532,13 +589,26 @@ const Chat: FC = () => {
         !mobileConversationMenuRef.current.contains(evt.target as Node)
       ) {
         setMobileConversationsOpen(false);
+        if (mobileImageTasksOpen) {
+          setMobileImageTasksOpen(false);
+          window.dispatchEvent(
+            new CustomEvent('hcai-toggle-image-tasks', {
+              detail: { open: false },
+            }),
+          );
+        }
       }
     };
     document.addEventListener('pointerdown', handlePointerDown);
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown);
     };
-  }, [attachmentMenuOpen, mobileConversationsOpen, modelMenuOpen]);
+  }, [
+    attachmentMenuOpen,
+    mobileConversationsOpen,
+    mobileImageTasksOpen,
+    modelMenuOpen,
+  ]);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -606,6 +676,29 @@ const Chat: FC = () => {
   }, [conversationID, mobileConversationsOpen]);
 
   useEffect(() => {
+    const handleImageTasksOpenChange = (evt: Event) => {
+      const open = (evt as CustomEvent<{ open?: boolean }>).detail?.open;
+      setMobileImageTasksOpen(Boolean(open));
+    };
+    window.addEventListener(
+      'hcai-image-tasks-open-change',
+      handleImageTasksOpenChange,
+    );
+    return () => {
+      window.removeEventListener(
+        'hcai-image-tasks-open-change',
+        handleImageTasksOpenChange,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    if (activeWorkspace !== 'image') {
+      setMobileImageTasksOpen(false);
+    }
+  }, [activeWorkspace]);
+
+  useEffect(() => {
     const handleOpenSubscription = () => {
       openSubscription();
     };
@@ -614,6 +707,10 @@ const Chat: FC = () => {
     };
     const handleStartNewConversation = () => {
       startNewConversation();
+    };
+    const handleOpenImageGeneration = () => {
+      switchWorkspace('image');
+      setMobileConversationsOpen(false);
     };
     const handleLoadConversationFromNav = (evt: Event) => {
       const conversationId = (evt as CustomEvent<{ conversation_id?: string }>)
@@ -627,6 +724,10 @@ const Chat: FC = () => {
     window.addEventListener(
       'hcai-start-new-conversation',
       handleStartNewConversation,
+    );
+    window.addEventListener(
+      'hcai-open-image-generation',
+      handleOpenImageGeneration,
     );
     window.addEventListener(
       'hcai-load-conversation',
@@ -643,15 +744,23 @@ const Chat: FC = () => {
         handleStartNewConversation,
       );
       window.removeEventListener(
+        'hcai-open-image-generation',
+        handleOpenImageGeneration,
+      );
+      window.removeEventListener(
         'hcai-load-conversation',
         handleLoadConversationFromNav,
       );
     };
-  }, []);
+  }, [switchWorkspace]);
 
   const handleNavAction = (action: string) => {
     if (action === 'new') {
       startNewConversation();
+    }
+    if (action === 'image') {
+      switchWorkspace('image');
+      setMobileConversationsOpen(false);
     }
     if (action === 'subscription') {
       openSubscription();
@@ -1393,7 +1502,12 @@ const Chat: FC = () => {
             <button
               type="button"
               className={
-                item.action === 'new' && !conversationID ? 'active' : ''
+                (item.action === 'new' &&
+                  activeWorkspace === 'chat' &&
+                  !conversationID) ||
+                (item.action === 'image' && activeWorkspace === 'image')
+                  ? 'active'
+                  : ''
               }
               key={item.label}
               onClick={() => handleNavAction(item.action)}>
@@ -1450,13 +1564,33 @@ const Chat: FC = () => {
             <button
               type="button"
               className="hcai-mobile-conversation-toggle"
-              aria-expanded={mobileConversationsOpen}
-              aria-controls="hcai-mobile-conversations"
-              onClick={() => setMobileConversationsOpen((open) => !open)}>
+              aria-expanded={
+                activeWorkspace === 'image'
+                  ? mobileImageTasksOpen
+                  : mobileConversationsOpen
+              }
+              aria-controls={
+                activeWorkspace === 'image'
+                  ? 'hcai-mobile-image-tasks'
+                  : 'hcai-mobile-conversations'
+              }
+              onClick={() => {
+                if (activeWorkspace === 'image') {
+                  const nextOpen = !mobileImageTasksOpen;
+                  setMobileImageTasksOpen(nextOpen);
+                  window.dispatchEvent(
+                    new CustomEvent('hcai-toggle-image-tasks', {
+                      detail: { open: nextOpen },
+                    }),
+                  );
+                  return;
+                }
+                setMobileConversationsOpen((open) => !open);
+              }}>
               <Icon name="layout-sidebar" />
-              <span>对话</span>
+              <span>{activeWorkspace === 'image' ? '任务队列' : '对话'}</span>
             </button>
-            {mobileConversationsOpen ? (
+            {mobileConversationsOpen && activeWorkspace === 'chat' ? (
               <div
                 id="hcai-mobile-conversations"
                 className="hcai-mobile-conversation-panel">
@@ -1492,59 +1626,67 @@ const Chat: FC = () => {
           </div>
         </div>
 
-        <section
-          ref={messages.length > 0 ? workspaceRef : undefined}
-          className={
-            messages.length > 0
-              ? 'hcai-chat-workspace active'
-              : 'hcai-chat-hero'
-          }>
-          {messages.length > 0 ? (
-            <div className="hcai-message-list" ref={messageListRef}>
-              {messages.map((item, index) => {
-                if (
-                  item.role === 'assistant' &&
-                  messages[index - 1]?.role === 'user' &&
-                  messageBranches[getMessageKey(messages[index - 1])]
-                ) {
-                  return null;
-                }
-                if (item.role !== 'user') {
-                  return renderMessage(item);
-                }
-                const branchKey = getMessageKey(item);
-                const branch = messageBranches[branchKey];
-                const activeBranch = branch?.responses[branch.active];
-                return (
-                  <div className="hcai-message-turn" key={branchKey}>
-                    {renderMessage(item)}
-                    {activeBranch
-                      ? renderMessage(activeBranch, {
-                          branchKey,
-                          branchIndex: branch.active,
-                          branchCount: branch.responses.length,
-                        })
-                      : null}
-                  </div>
-                );
-              })}
-              <div className="hcai-message-end" ref={messageEndRef} />
-            </div>
-          ) : (
-            <div className="hcai-chat-title">
-              <span className="hcai-chat-logo">
-                {siteIcon ? (
-                  <img src={siteIcon} alt={siteInfo.name} />
-                ) : (
-                  siteInfo.name.slice(0, 1)
-                )}
-              </span>
-              <h1>HCAI-CHAT</h1>
-            </div>
-          )}
-        </section>
+        {activeWorkspace === 'image' ? (
+          <ImageGenerationWorkspace
+            subscription={subscription}
+            onRefreshSubscription={refreshSubscription}
+            onOpenSubscription={openSubscription}
+          />
+        ) : (
+          <section
+            ref={messages.length > 0 ? workspaceRef : undefined}
+            className={
+              messages.length > 0
+                ? 'hcai-chat-workspace active'
+                : 'hcai-chat-hero'
+            }>
+            {messages.length > 0 ? (
+              <div className="hcai-message-list" ref={messageListRef}>
+                {messages.map((item, index) => {
+                  if (
+                    item.role === 'assistant' &&
+                    messages[index - 1]?.role === 'user' &&
+                    messageBranches[getMessageKey(messages[index - 1])]
+                  ) {
+                    return null;
+                  }
+                  if (item.role !== 'user') {
+                    return renderMessage(item);
+                  }
+                  const branchKey = getMessageKey(item);
+                  const branch = messageBranches[branchKey];
+                  const activeBranch = branch?.responses[branch.active];
+                  return (
+                    <div className="hcai-message-turn" key={branchKey}>
+                      {renderMessage(item)}
+                      {activeBranch
+                        ? renderMessage(activeBranch, {
+                            branchKey,
+                            branchIndex: branch.active,
+                            branchCount: branch.responses.length,
+                          })
+                        : null}
+                    </div>
+                  );
+                })}
+                <div className="hcai-message-end" ref={messageEndRef} />
+              </div>
+            ) : (
+              <div className="hcai-chat-title">
+                <span className="hcai-chat-logo">
+                  {siteIcon ? (
+                    <img src={siteIcon} alt={siteInfo.name} />
+                  ) : (
+                    siteInfo.name.slice(0, 1)
+                  )}
+                </span>
+                <h1>HCAI-CHAT</h1>
+              </div>
+            )}
+          </section>
+        )}
 
-        {showScrollToBottom ? (
+        {activeWorkspace === 'chat' && showScrollToBottom ? (
           <button
             type="button"
             className="hcai-scroll-bottom"
@@ -1555,204 +1697,208 @@ const Chat: FC = () => {
           </button>
         ) : null}
 
-        <form className="hcai-prompt-card" onSubmit={handleSubmit}>
-          <textarea
-            value={prompt}
-            placeholder="有什么我能帮您的吗?"
-            aria-label="聊天输入"
-            rows={1}
-            disabled={isGenerating}
-            onChange={(evt) => setPrompt(evt.target.value)}
-            onPaste={handlePromptPaste}
-            onKeyDown={(evt) => {
-              if (evt.key === 'Enter' && !evt.shiftKey) {
-                evt.preventDefault();
-                sendMessage(prompt);
-              }
-            }}
-          />
-          <input
-            ref={imageInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hcai-image-input"
-            onChange={handleImageSelect}
-          />
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".txt,.md,.markdown,.csv,.json,.log,.yaml,.yml,.xml,.html,.css,.scss,.js,.jsx,.ts,.tsx,.go,.py,.java,.rb,.php,.rs,.sql,.sh,.env,.pdf,.docx,.xlsx,.pptx,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            className="hcai-image-input"
-            onChange={handleFileSelect}
-          />
-          {promptImages.length > 0 ? (
-            <div className="hcai-prompt-images">
-              {promptImages.map((image) => (
-                <div className="hcai-prompt-image" key={image.id}>
-                  <img src={image.url} alt={image.name || '上传图片'} />
-                  <button
-                    type="button"
-                    aria-label="移除图片"
-                    onClick={() => removePromptImage(image.id)}>
-                    <Icon name="x" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : null}
-          {promptFiles.length > 0 ? (
-            <div className="hcai-prompt-files">
-              {promptFiles.map((file) => (
-                <div className="hcai-prompt-file" key={file.id}>
-                  <Icon name="file-earmark-text" />
-                  <span>{file.name}</span>
-                  <button
-                    type="button"
-                    aria-label="移除文件"
-                    onClick={() => removePromptFile(file.id)}>
-                    <Icon name="x" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : null}
-          {chatError ? (
-            <div className="hcai-chat-error">{chatError}</div>
-          ) : null}
-          <div className="hcai-prompt-tools">
-            <div className="hcai-prompt-left">
-              <div className="hcai-attachment-menu" ref={attachmentMenuRef}>
-                <button
-                  type="button"
-                  aria-label="添加附件"
-                  title="添加附件"
-                  disabled={isGenerating}
-                  onClick={() => setAttachmentMenuOpen((open) => !open)}>
-                  <Icon name="plus-lg" />
-                </button>
-                {attachmentMenuOpen ? (
-                  <div className="hcai-attachment-options">
+        {activeWorkspace === 'chat' ? (
+          <form className="hcai-prompt-card" onSubmit={handleSubmit}>
+            <textarea
+              value={prompt}
+              placeholder="有什么我能帮您的吗?"
+              aria-label="聊天输入"
+              rows={1}
+              disabled={isGenerating}
+              onChange={(evt) => setPrompt(evt.target.value)}
+              onPaste={handlePromptPaste}
+              onKeyDown={(evt) => {
+                if (evt.key === 'Enter' && !evt.shiftKey) {
+                  evt.preventDefault();
+                  sendMessage(prompt);
+                }
+              }}
+            />
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hcai-image-input"
+              onChange={handleImageSelect}
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".txt,.md,.markdown,.csv,.json,.log,.yaml,.yml,.xml,.html,.css,.scss,.js,.jsx,.ts,.tsx,.go,.py,.java,.rb,.php,.rs,.sql,.sh,.env,.pdf,.docx,.xlsx,.pptx,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+              className="hcai-image-input"
+              onChange={handleFileSelect}
+            />
+            {promptImages.length > 0 ? (
+              <div className="hcai-prompt-images">
+                {promptImages.map((image) => (
+                  <div className="hcai-prompt-image" key={image.id}>
+                    <img src={image.url} alt={image.name || '上传图片'} />
                     <button
                       type="button"
-                      disabled={!selectedModelSupportsVision}
-                      onClick={() => {
-                        setAttachmentMenuOpen(false);
-                        imageInputRef.current?.click();
-                      }}>
-                      <Icon name="image" />
-                      <span>上传图片</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAttachmentMenuOpen(false);
-                        fileInputRef.current?.click();
-                      }}>
-                      <Icon name="paperclip" />
-                      <span>上传文件</span>
+                      aria-label="移除图片"
+                      onClick={() => removePromptImage(image.id)}>
+                      <Icon name="x" />
                     </button>
                   </div>
-                ) : null}
+                ))}
               </div>
-            </div>
-            <div className="hcai-prompt-right">
-              <div className="hcai-model-menu" ref={modelMenuRef}>
-                <button
-                  type="button"
-                  className="hcai-model-select"
-                  disabled={modelsLoading || models.length === 0}
-                  onClick={() => setModelMenuOpen((open) => !open)}>
-                  <span>
-                    {modelsLoading
-                      ? '加载模型...'
-                      : getModelName(selectedModel)}
-                  </span>
-                  {selectedModelSupportsReasoning ? (
-                    <em>{getReasoningEffortLabel(selectedReasoningEffort)}</em>
+            ) : null}
+            {promptFiles.length > 0 ? (
+              <div className="hcai-prompt-files">
+                {promptFiles.map((file) => (
+                  <div className="hcai-prompt-file" key={file.id}>
+                    <Icon name="file-earmark-text" />
+                    <span>{file.name}</span>
+                    <button
+                      type="button"
+                      aria-label="移除文件"
+                      onClick={() => removePromptFile(file.id)}>
+                      <Icon name="x" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {chatError ? (
+              <div className="hcai-chat-error">{chatError}</div>
+            ) : null}
+            <div className="hcai-prompt-tools">
+              <div className="hcai-prompt-left">
+                <div className="hcai-attachment-menu" ref={attachmentMenuRef}>
+                  <button
+                    type="button"
+                    aria-label="添加附件"
+                    title="添加附件"
+                    disabled={isGenerating}
+                    onClick={() => setAttachmentMenuOpen((open) => !open)}>
+                    <Icon name="plus-lg" />
+                  </button>
+                  {attachmentMenuOpen ? (
+                    <div className="hcai-attachment-options">
+                      <button
+                        type="button"
+                        disabled={!selectedModelSupportsVision}
+                        onClick={() => {
+                          setAttachmentMenuOpen(false);
+                          imageInputRef.current?.click();
+                        }}>
+                        <Icon name="image" />
+                        <span>上传图片</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAttachmentMenuOpen(false);
+                          fileInputRef.current?.click();
+                        }}>
+                        <Icon name="paperclip" />
+                        <span>上传文件</span>
+                      </button>
+                    </div>
                   ) : null}
-                  <Icon name="chevron-down" />
-                </button>
-                {modelMenuOpen ? (
-                  <div className="hcai-model-options">
-                    {models.map((model) => {
-                      const modelSupportsReasoning =
-                        supportsReasoningModel(model);
-                      const modelReasoningEffort =
-                        modelReasoningEfforts[model.site_model_id] || '';
-                      return (
-                        <div
-                          className={
-                            model.site_model_id === selectedModelID
-                              ? 'hcai-model-option active'
-                              : 'hcai-model-option'
-                          }
-                          key={model.site_model_id}>
-                          <button
-                            type="button"
-                            className="hcai-model-option-main"
-                            onClick={() => {
-                              setSelectedModelID(model.site_model_id);
-                            }}>
-                            <strong>{getModelName(model)}</strong>
-                            <span>
-                              {model.consume_rate} 点/次
-                              {modelSupportsReasoning
-                                ? ` · 思考 ${getReasoningEffortLabel(
-                                    modelReasoningEffort,
-                                  )}`
-                                : ''}
-                            </span>
-                          </button>
-                          {modelSupportsReasoning ? (
-                            <div
-                              className="hcai-model-reasoning"
-                              aria-label={`${getModelName(model)} 思考长度`}>
-                              {reasoningEffortOptions.map((option) => (
-                                <button
-                                  type="button"
-                                  className={
-                                    modelReasoningEffort === option.value
-                                      ? 'active'
-                                      : ''
-                                  }
-                                  key={option.value || 'auto'}
-                                  onClick={() => {
-                                    setModelReasoningEfforts((prev) => ({
-                                      ...prev,
-                                      [model.site_model_id]: option.value,
-                                    }));
-                                  }}>
-                                  {option.label}
-                                </button>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
+                </div>
               </div>
-              <button
-                type={isGenerating ? 'button' : 'submit'}
-                aria-label={isGenerating ? '停止生成' : '发送消息'}
-                className="send"
-                title={isGenerating ? '停止生成' : '发送'}
-                onClick={isGenerating ? handleCancel : undefined}
-                disabled={
-                  !isGenerating &&
-                  ((!prompt.trim() &&
-                    promptImages.length === 0 &&
-                    promptFiles.length === 0) ||
-                    !selectedModelID)
-                }>
-                <Icon name={isGenerating ? 'stop-fill' : 'arrow-up'} />
-              </button>
+              <div className="hcai-prompt-right">
+                <div className="hcai-model-menu" ref={modelMenuRef}>
+                  <button
+                    type="button"
+                    className="hcai-model-select"
+                    disabled={modelsLoading || models.length === 0}
+                    onClick={() => setModelMenuOpen((open) => !open)}>
+                    <span>
+                      {modelsLoading
+                        ? '加载模型...'
+                        : getModelName(selectedModel)}
+                    </span>
+                    {selectedModelSupportsReasoning ? (
+                      <em>
+                        {getReasoningEffortLabel(selectedReasoningEffort)}
+                      </em>
+                    ) : null}
+                    <Icon name="chevron-down" />
+                  </button>
+                  {modelMenuOpen ? (
+                    <div className="hcai-model-options">
+                      {models.map((model) => {
+                        const modelSupportsReasoning =
+                          supportsReasoningModel(model);
+                        const modelReasoningEffort =
+                          modelReasoningEfforts[model.site_model_id] || '';
+                        return (
+                          <div
+                            className={
+                              model.site_model_id === selectedModelID
+                                ? 'hcai-model-option active'
+                                : 'hcai-model-option'
+                            }
+                            key={model.site_model_id}>
+                            <button
+                              type="button"
+                              className="hcai-model-option-main"
+                              onClick={() => {
+                                setSelectedModelID(model.site_model_id);
+                              }}>
+                              <strong>{getModelName(model)}</strong>
+                              <span>
+                                {model.consume_rate} 点/次
+                                {modelSupportsReasoning
+                                  ? ` · 思考 ${getReasoningEffortLabel(
+                                      modelReasoningEffort,
+                                    )}`
+                                  : ''}
+                              </span>
+                            </button>
+                            {modelSupportsReasoning ? (
+                              <div
+                                className="hcai-model-reasoning"
+                                aria-label={`${getModelName(model)} 思考长度`}>
+                                {reasoningEffortOptions.map((option) => (
+                                  <button
+                                    type="button"
+                                    className={
+                                      modelReasoningEffort === option.value
+                                        ? 'active'
+                                        : ''
+                                    }
+                                    key={option.value || 'auto'}
+                                    onClick={() => {
+                                      setModelReasoningEfforts((prev) => ({
+                                        ...prev,
+                                        [model.site_model_id]: option.value,
+                                      }));
+                                    }}>
+                                    {option.label}
+                                  </button>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+                <button
+                  type={isGenerating ? 'button' : 'submit'}
+                  aria-label={isGenerating ? '停止生成' : '发送消息'}
+                  className="send"
+                  title={isGenerating ? '停止生成' : '发送'}
+                  onClick={isGenerating ? handleCancel : undefined}
+                  disabled={
+                    !isGenerating &&
+                    ((!prompt.trim() &&
+                      promptImages.length === 0 &&
+                      promptFiles.length === 0) ||
+                      !selectedModelID)
+                  }>
+                  <Icon name={isGenerating ? 'stop-fill' : 'arrow-up'} />
+                </button>
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
+        ) : null}
       </main>
 
       <Modal

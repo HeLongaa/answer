@@ -1,0 +1,29 @@
+.md-show.admin-task-status-tabs {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.md-hide.admin-task-status-tabs {
+  display: none !important;
+}
+
+.admin-task-status-tabs.btn-group > .btn {
+  flex: 0 1 auto;
+  min-width: 4.6rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px !important;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.admin-task-status-tabs.btn-group > .btn:not(:first-child) {
+  margin-left: 0;
+}
+
+@media screen and (min-width: 992px) {
+  .admin-task-status-tabs.btn-group > .btn {
+    min-width: 5.4rem;
+  }
+}

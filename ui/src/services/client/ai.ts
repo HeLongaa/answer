@@ -22,6 +22,8 @@ import qs from 'qs';
 import request from '@/utils/request';
 import type * as Type from '@/common/interface';
 
+const aiImageTimeout = 600000;
+
 export const getConversationList = (params: Type.Paging) => {
   return request.get<{ count: number; list: Type.ConversationListItem[] }>(
     `/answer/api/v1/ai/conversation/page?${qs.stringify(params)}`,
@@ -62,6 +64,32 @@ export const getAiSubscriptionOverview = () => {
 
 export const getAiChatModels = () => {
   return request.get<Type.AiChatModel[]>('/answer/api/v1/ai-chat/models');
+};
+
+export const getAiImageModels = () => {
+  return request.get<Type.AiImageModel[]>('/answer/api/v1/ai-image/models');
+};
+
+export const getAiImageGenerations = (limit = 30) => {
+  return request.get<Type.AiImageGeneration[]>(
+    `/answer/api/v1/ai-image/generations?limit=${limit}`,
+  );
+};
+
+export const generateAiImage = (params: Type.AiImageGenerateParams) => {
+  return request.post<Type.AiImageGenerateResult>(
+    '/answer/api/v1/ai-image/generations',
+    params,
+    { timeout: aiImageTimeout },
+  );
+};
+
+export const editAiImage = (params: Type.AiImageEditParams) => {
+  return request.post<Type.AiImageGenerateResult>(
+    '/answer/api/v1/ai-image/edits',
+    params,
+    { timeout: aiImageTimeout },
+  );
 };
 
 export const getAiSubscriptionPurchase = () => {

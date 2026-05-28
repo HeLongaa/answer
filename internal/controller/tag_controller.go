@@ -27,6 +27,7 @@ import (
 	"github.com/apache/answer/internal/schema"
 	"github.com/apache/answer/internal/service/permission"
 	"github.com/apache/answer/internal/service/rank"
+	"github.com/apache/answer/internal/service/realtime"
 	"github.com/apache/answer/internal/service/tag"
 	"github.com/apache/answer/internal/service/tag_common"
 	"github.com/gin-gonic/gin"
@@ -38,6 +39,7 @@ type TagController struct {
 	tagService       *tag.TagService
 	tagCommonService *tag_common.TagCommonService
 	rankService      *rank.RankService
+	realtimeService  *realtime.Service
 }
 
 // NewTagController new controller
@@ -45,8 +47,16 @@ func NewTagController(
 	tagService *tag.TagService,
 	tagCommonService *tag_common.TagCommonService,
 	rankService *rank.RankService,
+	realtimeService *realtime.Service,
 ) *TagController {
-	return &TagController{tagService: tagService, tagCommonService: tagCommonService, rankService: rankService}
+	return &TagController{tagService: tagService, tagCommonService: tagCommonService, rankService: rankService, realtimeService: realtimeService}
+}
+
+func (tc *TagController) publishTagChanged(tagID, slugName string) {
+	tc.realtimeService.Broadcast(realtime.EventTagChanged, map[string]any{
+		"tag_id":    tagID,
+		"slug_name": slugName,
+	})
 }
 
 // SearchTagLike get tag list
@@ -132,6 +142,9 @@ func (tc *TagController) RemoveTag(ctx *gin.Context) {
 		}
 	}
 	err = tc.tagService.RemoveTag(ctx, req)
+	if err == nil {
+		tc.publishTagChanged(req.TagID, "")
+	}
 	handler.HandleResponse(ctx, err, nil)
 }
 
@@ -168,6 +181,9 @@ func (tc *TagController) AddTag(ctx *gin.Context) {
 	}
 
 	resp, err := tc.tagCommonService.AddTag(ctx, req)
+	if err == nil {
+		tc.publishTagChanged("", req.SlugName)
+	}
 	handler.HandleResponse(ctx, err, resp)
 }
 
@@ -213,6 +229,7 @@ func (tc *TagController) UpdateTag(ctx *gin.Context) {
 	if err != nil {
 		handler.HandleResponse(ctx, err, nil)
 	} else {
+		tc.publishTagChanged(req.TagID, req.SlugName)
 		handler.HandleResponse(ctx, err, &schema.UpdateTagResp{WaitForReview: !req.NoNeedReview})
 	}
 }
@@ -252,6 +269,9 @@ func (tc *TagController) RecoverTag(ctx *gin.Context) {
 	}
 
 	err = tc.tagService.RecoverTag(ctx, req)
+	if err == nil {
+		tc.publishTagChanged(req.TagID, "")
+	}
 	handler.HandleResponse(ctx, err, nil)
 }
 
@@ -404,6 +424,9 @@ func (tc *TagController) UpdateTagSynonym(ctx *gin.Context) {
 	}
 
 	err = tc.tagService.UpdateTagSynonym(ctx, req)
+	if err == nil {
+		tc.publishTagChanged(req.TagID, "")
+	}
 	handler.HandleResponse(ctx, err, nil)
 }
 
@@ -431,6 +454,10 @@ func (tc *TagController) MergeTag(ctx *gin.Context) {
 
 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
 	err := tc.tagService.MergeTag(ctx, req)
+	if err == nil {
+		tc.publishTagChanged(req.SourceTagID, "")
+		tc.publishTagChanged(req.TargetTagID, "")
+	}
 
 	handler.HandleResponse(ctx, err, nil)
 }

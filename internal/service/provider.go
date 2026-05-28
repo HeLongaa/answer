@@ -53,6 +53,7 @@ import (
 	"github.com/apache/answer/internal/service/plugin_common"
 	questioncommon "github.com/apache/answer/internal/service/question_common"
 	"github.com/apache/answer/internal/service/rank"
+	"github.com/apache/answer/internal/service/realtime"
 	"github.com/apache/answer/internal/service/reason"
 	"github.com/apache/answer/internal/service/report"
 	"github.com/apache/answer/internal/service/report_handle"
@@ -64,6 +65,7 @@ import (
 	"github.com/apache/answer/internal/service/siteinfo_common"
 	"github.com/apache/answer/internal/service/tag"
 	tagcommon "github.com/apache/answer/internal/service/tag_common"
+	"github.com/apache/answer/internal/service/task_square"
 	"github.com/apache/answer/internal/service/uploader"
 	"github.com/apache/answer/internal/service/user_admin"
 	usercommon "github.com/apache/answer/internal/service/user_common"
@@ -140,4 +142,6 @@ var ProviderSetService = wire.NewSet(
 	feature_toggle.NewFeatureToggleService,
 	embedding.NewEmbeddingService,
 	vector_sync.NewService,
+	realtime.NewService,
+	task_square.NewTaskSquareService,
 )

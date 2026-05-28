@@ -99,3 +99,43 @@ export const createAiChatConsumeRate = (params) => {
 export const updateAiChatConsumeRate = (id: number, params) => {
   return request.put(`${base}/consume-rates/${id}`, params);
 };
+
+export const getAdminAiImageProviders = () => {
+  return request.get<any[]>(`${base}/image-providers`);
+};
+
+export const createAdminAiImageProvider = (params) => {
+  return request.post(`${base}/image-providers`, params);
+};
+
+export const updateAdminAiImageProvider = (id: number, params) => {
+  return request.put(`${base}/image-providers/${id}`, params);
+};
+
+export const deleteAdminAiImageProvider = (id: number) => {
+  return request.delete(`${base}/image-providers/${id}`);
+};
+
+export const getAdminAiImageModels = () => {
+  return request.get<any[]>(`${base}/image-models`);
+};
+
+export const createAdminAiImageModel = (params) => {
+  return request.post(`${base}/image-models`, params);
+};
+
+export const updateAdminAiImageModel = (id: number, params) => {
+  return request.put(`${base}/image-models/${id}`, params);
+};
+
+export const deleteAdminAiImageModel = (id: number) => {
+  return request.delete(`${base}/image-models/${id}`);
+};
+
+export const getAdminAiImageSetting = () => {
+  return request.get<any>(`${base}/image-setting`);
+};
+
+export const updateAdminAiImageSetting = (params) => {
+  return request.put(`${base}/image-setting`, params);
+};

@@ -264,6 +264,7 @@ type QuestionInfoResp struct {
 	Collected            bool           `json:"collected"`
 	VoteStatus           string         `json:"vote_status"`
 	IsFollowed           bool           `json:"is_followed"`
+	Featured             bool           `json:"featured"`
 
 	// MemberActions
 	MemberActions  []*PermissionMemberAction `json:"member_actions"`
@@ -414,6 +415,7 @@ type QuestionPageResp struct {
 	OperatedAt    int64                     `json:"operated_at"`
 	Operator      *QuestionPageRespOperator `json:"operator"`
 	OperationType string                    `json:"operation_type"`
+	Featured      bool                      `json:"featured"`
 }
 
 type QuestionPageRespOperator struct {

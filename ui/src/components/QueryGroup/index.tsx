@@ -77,7 +77,7 @@ const Index: FC<Props> = ({
   const moreBtnData = data.length > 4 ? data.slice(maxBtnCount) : [];
   const normalBtnData = data.length > 4 ? data.slice(0, maxBtnCount) : data;
   const currentBtn = moreBtnData.find((btn) => {
-    return (typeof btn === 'string' ? btn : btn.name) === currentSort;
+    return (typeof btn === 'string' ? btn : btn.sort) === currentSort;
   });
 
   return (
@@ -90,7 +90,7 @@ const Index: FC<Props> = ({
             <Button
               key={key}
               variant="outline-secondary"
-              active={currentSort === name}
+              active={currentSort === key}
               className={classNames('text-capitalize fit-content', className)}
               href={
                 pathname
@@ -111,7 +111,7 @@ const Index: FC<Props> = ({
             <Dropdown.Toggle
               size="sm"
               variant={currentBtn ? 'secondary' : 'outline-secondary'}>
-              {currentBtn ? t(currentSort) : t('more')}
+              {currentBtn ? t(currentBtn.name) : t('more')}
             </Dropdown.Toggle>
             <Dropdown.Menu
               renderOnMount
@@ -129,7 +129,7 @@ const Index: FC<Props> = ({
                   <Dropdown.Item
                     as="a"
                     key={key}
-                    active={currentSort === name}
+                    active={currentSort === key}
                     className={classNames('text-capitalize', className)}
                     href={
                       pathname

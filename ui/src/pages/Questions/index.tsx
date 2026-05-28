@@ -52,10 +52,13 @@ const Questions: FC = () => {
     page: curPage,
     order: curOrder as Type.QuestionOrderBy,
   };
-  const { data: listData, isLoading: listLoading } =
-    curOrder === 'recommend'
-      ? useQuestionRecommendList(reqParams)
-      : useQuestionList(reqParams);
+  const {
+    data: listData,
+    isLoading: listLoading,
+    mutate: refreshList,
+  } = curOrder === 'recommend'
+    ? useQuestionRecommendList(reqParams)
+    : useQuestionList(reqParams);
   const isIndexPage = useMatch('/');
   let pageTitle = t('questions', { keyPrefix: 'page_title' });
   let slogan = '';
@@ -80,6 +83,7 @@ const Questions: FC = () => {
               : QUESTION_ORDER_KEYS.filter((key) => key !== 'recommend')
           }
           isLoading={listLoading}
+          onRefresh={refreshList}
         />
       </Col>
       <Col className="page-right-side mt-4 mt-xl-0">

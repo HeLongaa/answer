@@ -34,7 +34,9 @@ import (
 	"github.com/apache/answer/internal/service/content"
 	"github.com/apache/answer/internal/service/permission"
 	"github.com/apache/answer/internal/service/rank"
+	"github.com/apache/answer/internal/service/realtime"
 	"github.com/apache/answer/internal/service/siteinfo_common"
+	"github.com/apache/answer/internal/service/task_square"
 	"github.com/apache/answer/pkg/uid"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -49,6 +51,8 @@ type QuestionController struct {
 	siteInfoService     siteinfo_common.SiteInfoCommonService
 	actionService       *action.CaptchaService
 	rateLimitMiddleware *middleware.RateLimitMiddleware
+	taskSquareService   *task_square.TaskSquareService
+	realtimeService     *realtime.Service
 }
 
 // NewQuestionController new controller
@@ -59,6 +63,8 @@ func NewQuestionController(
 	siteInfoService siteinfo_common.SiteInfoCommonService,
 	actionService *action.CaptchaService,
 	rateLimitMiddleware *middleware.RateLimitMiddleware,
+	taskSquareService *task_square.TaskSquareService,
+	realtimeService *realtime.Service,
 ) *QuestionController {
 	return &QuestionController{
 		questionService:     questionService,
@@ -67,6 +73,8 @@ func NewQuestionController(
 		siteInfoService:     siteInfoService,
 		actionService:       actionService,
 		rateLimitMiddleware: rateLimitMiddleware,
+		taskSquareService:   taskSquareService,
+		realtimeService:     realtimeService,
 	}
 }
 
@@ -111,6 +119,9 @@ func (qc *QuestionController) RemoveQuestion(ctx *gin.Context) {
 		return
 	}
 	err = qc.questionService.RemoveQuestion(ctx, req)
+	if err == nil && qc.taskSquareService != nil {
+		err = qc.taskSquareService.RevokeFeaturedPostReward(ctx, req.ID, req.UserID)
+	}
 	if !isAdmin {
 		qc.actionService.ActionRecordAdd(ctx, entity.CaptchaActionDelete, req.UserID)
 	}
@@ -483,6 +494,12 @@ func (qc *QuestionController) AddQuestion(ctx *gin.Context) {
 	if !isAdmin || !linkUrlLimitUser {
 		qc.actionService.ActionRecordAdd(ctx, entity.CaptchaActionQuestion, req.UserID)
 	}
+	if questionInfo, ok := resp.(*schema.QuestionInfoResp); ok {
+		qc.realtimeService.Broadcast(realtime.EventQuestionCreated, map[string]any{
+			"question_id": questionInfo.ID,
+			"user_id":     req.UserID,
+		})
+	}
 	handler.HandleResponse(ctx, err, resp)
 }
 
@@ -581,6 +598,10 @@ func (qc *QuestionController) AddQuestionByAnswer(ctx *gin.Context) {
 	// add the question id to the answer
 	questionInfo, ok := resp.(*schema.QuestionInfoResp)
 	if ok {
+		qc.realtimeService.Broadcast(realtime.EventQuestionCreated, map[string]any{
+			"question_id": questionInfo.ID,
+			"user_id":     req.UserID,
+		})
 		answerReq := &schema.AnswerAddReq{}
 		answerReq.QuestionID = uid.DeShortID(questionInfo.ID)
 		answerReq.UserID = middleware.GetLoginUserIDFromContext(ctx)

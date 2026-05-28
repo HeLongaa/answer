@@ -116,6 +116,8 @@ type GetUserPageResp struct {
 	EMail string `json:"e_mail"`
 	// rank
 	Rank int `json:"rank"`
+	// point balance
+	PointBalance int `json:"point_balance"`
 	// user status(normal,suspended,deleted,inactive)
 	Status string `json:"status"`
 	// display name

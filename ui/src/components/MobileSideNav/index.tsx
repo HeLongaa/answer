@@ -37,10 +37,12 @@ const chatNavItems = [
 ];
 
 const MobileSideNav = ({ show, onHide }) => {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const isAdmin = pathname.includes('/admin');
   const isChat = pathname === '/';
+  const isImageWorkspace =
+    isChat && new URLSearchParams(search).get('workspace') === 'image';
   const isUserSideNavPage =
     pathname === '/users' ||
     /^\/users\/[^/]+(\/(answers|questions|bookmarks|reputation|badges|votes))?$/.test(
@@ -52,6 +54,7 @@ const MobileSideNav = ({ show, onHide }) => {
     isUserSideNavPage ||
     pathname.startsWith('/badges') ||
     pathname.startsWith('/review');
+  const isTaskPage = pathname.startsWith('/tasks');
   const siteInfo = siteInfoStore((state) => state.siteInfo);
   const [conversationsOpen, setConversationsOpen] = useState(true);
   const [conversationList, setConversationList] = useState<
@@ -62,6 +65,10 @@ const MobileSideNav = ({ show, onHide }) => {
   const closeSideNav = () => onHide(false);
   const startNewConversation = () => {
     window.dispatchEvent(new CustomEvent('hcai-start-new-conversation'));
+    closeSideNav();
+  };
+  const openImageGeneration = () => {
+    window.dispatchEvent(new CustomEvent('hcai-open-image-generation'));
     closeSideNav();
   };
   const loadConversation = (id: string) => {
@@ -134,9 +141,12 @@ const MobileSideNav = ({ show, onHide }) => {
             className={isCommunityPage ? 'active' : ''}>
             社区
           </NavLink>
-          <button type="button" aria-disabled="true">
-            支持
-          </button>
+          <NavLink
+            to="/tasks"
+            onClick={closeSideNav}
+            className={isTaskPage ? 'active' : ''}>
+            任务
+          </NavLink>
         </div>
         <button
           type="button"
@@ -152,11 +162,19 @@ const MobileSideNav = ({ show, onHide }) => {
               {chatNavItems.map((item) => (
                 <button
                   type="button"
-                  className={item.active ? 'active' : ''}
+                  className={
+                    (item.label === '新对话' && !isImageWorkspace) ||
+                    (item.label === '图片生成' && isImageWorkspace)
+                      ? 'active'
+                      : ''
+                  }
                   key={item.label}
                   onClick={() => {
                     if (item.label === '新对话') {
                       startNewConversation();
+                    }
+                    if (item.label === '图片生成') {
+                      openImageGeneration();
                     }
                     if (item.label === '订阅管理') {
                       openSubscription();

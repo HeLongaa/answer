@@ -64,6 +64,7 @@ type UserAdminRepo interface {
 	GetUserInfoByEmail(ctx context.Context, email string) (user *entity.User, exist bool, err error)
 	GetUserPage(ctx context.Context, page, pageSize int, user *entity.User,
 		usernameOrDisplayName string, isStaff bool) (users []*entity.User, total int64, err error)
+	GetUserPointBalances(ctx context.Context, userIDs []string) (map[string]int, error)
 	AddUser(ctx context.Context, user *entity.User) (err error)
 	AddUsers(ctx context.Context, users []*entity.User) (err error)
 	UpdateUserPassword(ctx context.Context, userID string, password string) (err error)
@@ -510,17 +511,26 @@ func (us *UserAdminService) GetUserPage(ctx context.Context, req *schema.GetUser
 		return
 	}
 	avatarMapping := us.siteInfoCommonService.FormatListAvatar(ctx, users)
+	userIDs := make([]string, 0, len(users))
+	for _, u := range users {
+		userIDs = append(userIDs, u.ID)
+	}
+	pointBalanceMapping, err := us.userRepo.GetUserPointBalances(ctx, userIDs)
+	if err != nil {
+		return nil, err
+	}
 
 	resp := make([]*schema.GetUserPageResp, 0)
 	for _, u := range users {
 		t := &schema.GetUserPageResp{
-			UserID:      u.ID,
-			CreatedAt:   u.CreatedAt.Unix(),
-			Username:    u.Username,
-			EMail:       u.EMail,
-			Rank:        u.Rank,
-			DisplayName: u.DisplayName,
-			Avatar:      avatarMapping[u.ID].GetURL(),
+			UserID:       u.ID,
+			CreatedAt:    u.CreatedAt.Unix(),
+			Username:     u.Username,
+			EMail:        u.EMail,
+			Rank:         u.Rank,
+			PointBalance: pointBalanceMapping[u.ID],
+			DisplayName:  u.DisplayName,
+			Avatar:       avatarMapping[u.ID].GetURL(),
 			SubscriptionLevel: func() string {
 				if u.SubscriptionLevel == "" || u.SubscriptionLevel == "free" {
 					return "free"

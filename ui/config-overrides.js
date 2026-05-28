@@ -22,29 +22,29 @@ const {
   addWebpackAlias,
   setWebpackOptimizationSplitChunks,
   addWebpackPlugin,
-} = require("customize-cra");
+} = require('customize-cra');
 const webpack = require('webpack');
 
-const path = require("path");
-const i18nPath = path.resolve(__dirname, "../i18n");
+const path = require('path');
+const i18nPath = path.resolve(__dirname, '../i18n');
 
 module.exports = {
-  webpack: function(config, env) {
+  webpack: function (config, env) {
     addWebpackAlias({
-      "@": path.resolve(__dirname, "src"),
-      "@i18n": i18nPath,
+      '@': path.resolve(__dirname, 'src'),
+      '@i18n': i18nPath,
       buffer: 'buffer',
     })(config);
 
     addWebpackModuleRule({
       test: /\.ya?ml$/,
-      use: "yaml-loader"
+      use: 'yaml-loader',
     })(config);
 
     addWebpackPlugin(
       new webpack.ProvidePlugin({
         Buffer: ['buffer', 'Buffer'],
-      })
+      }),
     )(config);
 
     setWebpackOptimizationSplitChunks({
@@ -126,19 +126,21 @@ module.exports = {
     })(config);
 
     // add i18n dir to ModuleScopePlugin allowedPaths
-    const moduleScopePlugin = config.resolve.plugins.find(_ => _.constructor.name === "ModuleScopePlugin");
+    const moduleScopePlugin = config.resolve.plugins.find(
+      (_) => _.constructor.name === 'ModuleScopePlugin',
+    );
     if (moduleScopePlugin) {
       moduleScopePlugin.allowedPaths.push(i18nPath);
     }
 
     return config;
   },
-  devServer: function(configFunction) {
-    return function(proxy, allowedHost) {
+  devServer: function (configFunction) {
+    return function (proxy, allowedHost) {
       const config = configFunction(proxy, allowedHost);
       config.proxy = [
         {
-          context: ['/answer', '/installation'],
+          context: ['/answer', '/installation', '/uploads'],
           target: process.env.REACT_APP_API_URL,
           changeOrigin: true,
           secure: false,
@@ -146,9 +148,9 @@ module.exports = {
         {
           context: ['/custom.css'],
           target: process.env.REACT_APP_API_URL,
-        }
+        },
       ];
       return config;
     };
-  }
+  },
 };

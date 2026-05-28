@@ -41,6 +41,7 @@
 
 html,
 body {
+  min-width: 420px;
   padding: 0;
 }
 
@@ -162,6 +163,7 @@ img[src=''] {
 }
 
 #root {
+  min-width: 420px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;

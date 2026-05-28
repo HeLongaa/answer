@@ -261,6 +261,7 @@ func (qs *QuestionCommon) Info(ctx context.Context, questionID string, loginUser
 		return resp, errors.NotFound(reason.QuestionNotFound)
 	}
 	resp = qs.ShowFormat(ctx, questionInfo)
+	qs.fillFeaturedStatus(ctx, []*schema.QuestionInfoResp{resp})
 	if resp.Status == entity.QuestionStatusClosed {
 		metaInfo, err := qs.metaCommonService.GetMetaByObjectIdAndKey(ctx, questionInfo.ID, entity.QuestionCloseReasonKey)
 		if err != nil {
@@ -461,6 +462,7 @@ func (qs *QuestionCommon) FormatQuestionsPage(
 			}
 		}
 	}
+	qs.fillFeaturedPageStatus(ctx, formattedQuestions)
 	return formattedQuestions, nil
 }
 
@@ -491,6 +493,7 @@ func (qs *QuestionCommon) FormatQuestions(ctx context.Context, questionList []*e
 		item.UpdateUserInfo = userInfoMap[item.LastEditUserID]
 		item.LastAnsweredUserInfo = userInfoMap[item.LastAnsweredUserID]
 	}
+	qs.fillFeaturedStatus(ctx, list)
 	if loginUserID == "" {
 		return list, nil
 	}
@@ -503,6 +506,62 @@ func (qs *QuestionCommon) FormatQuestions(ctx context.Context, questionList []*e
 		item.Collected = collectedMap[item.ID]
 	}
 	return list, nil
+}
+
+func (qs *QuestionCommon) fillFeaturedStatus(ctx context.Context, list []*schema.QuestionInfoResp) {
+	if len(list) == 0 || qs.data == nil || qs.data.DB == nil {
+		return
+	}
+	questionIDs := make([]string, 0, len(list))
+	itemMap := make(map[string]*schema.QuestionInfoResp, len(list))
+	for _, item := range list {
+		id := uid.DeShortID(item.ID)
+		questionIDs = append(questionIDs, id)
+		itemMap[id] = item
+	}
+
+	featuredPosts := make([]*entity.FeaturedPost, 0)
+	err := qs.data.DB.Context(ctx).
+		In("question_id", questionIDs).
+		Where("active = ? AND revoked = ?", true, false).
+		Find(&featuredPosts)
+	if err != nil {
+		log.Errorf("get featured post status error: %v", err)
+		return
+	}
+	for _, featured := range featuredPosts {
+		if item, ok := itemMap[featured.QuestionID]; ok {
+			item.Featured = true
+		}
+	}
+}
+
+func (qs *QuestionCommon) fillFeaturedPageStatus(ctx context.Context, list []*schema.QuestionPageResp) {
+	if len(list) == 0 || qs.data == nil || qs.data.DB == nil {
+		return
+	}
+	questionIDs := make([]string, 0, len(list))
+	itemMap := make(map[string]*schema.QuestionPageResp, len(list))
+	for _, item := range list {
+		id := uid.DeShortID(item.ID)
+		questionIDs = append(questionIDs, id)
+		itemMap[id] = item
+	}
+
+	featuredPosts := make([]*entity.FeaturedPost, 0)
+	err := qs.data.DB.Context(ctx).
+		In("question_id", questionIDs).
+		Where("active = ? AND revoked = ?", true, false).
+		Find(&featuredPosts)
+	if err != nil {
+		log.Errorf("get featured post page status error: %v", err)
+		return
+	}
+	for _, featured := range featuredPosts {
+		if item, ok := itemMap[featured.QuestionID]; ok {
+			item.Featured = true
+		}
+	}
 }
 
 // RemoveQuestion delete question
