@@ -10737,6 +10737,10 @@ const docTemplate = `{
                     "description": "email",
                     "type": "string"
                 },
+                "point_balance": {
+                    "description": "point balance",
+                    "type": "integer"
+                },
                 "rank": {
                     "description": "rank",
                     "type": "integer"

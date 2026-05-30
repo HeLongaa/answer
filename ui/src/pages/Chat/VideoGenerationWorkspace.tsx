@@ -249,15 +249,30 @@ const resolveVideoURL = (url: string) => {
   if (!url || url.startsWith('blob:') || url.startsWith('data:')) {
     return url;
   }
+  const appendAssetToken = (assetURL: string) => {
+    const token = Storage.get(LOGGED_TOKEN_STORAGE_KEY);
+    if (!token) {
+      return assetURL;
+    }
+    try {
+      const parsed = new URL(assetURL, window.location.origin);
+      parsed.searchParams.set('Authorization', token);
+      return parsed.pathname + parsed.search + parsed.hash;
+    } catch {
+      return assetURL;
+    }
+  };
   try {
     const parsed = new URL(url, window.location.origin);
     const match = parsed.pathname.match(
       /^\/uploads\/ai-videos\/([^/]+)\/([^/?#]+)$/,
     );
     if (match) {
-      return `/answer/api/v1/ai-video/assets/${encodeURIComponent(
-        match[1],
-      )}/${encodeURIComponent(match[2])}`;
+      return appendAssetToken(
+        `/answer/api/v1/ai-video/assets/${encodeURIComponent(
+          match[1],
+        )}/${encodeURIComponent(match[2])}`,
+      );
     }
   } catch {
     // Keep the original URL if parsing fails.

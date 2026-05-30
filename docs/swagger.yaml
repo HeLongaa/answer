@@ -1574,6 +1574,9 @@ definitions:
       e_mail:
         description: email
         type: string
+      point_balance:
+        description: point balance
+        type: integer
       rank:
         description: rank
         type: integer
