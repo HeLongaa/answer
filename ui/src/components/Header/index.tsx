@@ -300,12 +300,12 @@ const Header: FC = () => {
         {user?.username ? (
           <Nav className="d-flex align-items-center flex-nowrap flex-row ms-auto">
             {showAiSubscriptionPill ? (
-              <Nav.Item className="me-2">
+              <Nav.Item className="me-2 header-quota-pill-item">
                 <AiSubscriptionPill />
               </Nav.Item>
             ) : null}
             {isCommunityPage || isTaskPage ? (
-              <Nav.Item className="me-2">
+              <Nav.Item className="me-2 header-quota-pill-item">
                 <CommunityPointsPill />
               </Nav.Item>
             ) : null}

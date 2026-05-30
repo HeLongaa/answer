@@ -75,7 +75,9 @@ func (s *TaskSquareService) CreateTask(ctx context.Context, req *schema.TaskCrea
 		Attachments: encodeList(req.Attachments),
 		Status:      status,
 	}
-	_, err := s.data.DB.Context(ctx).Insert(task)
+	_, err := s.data.DB.Context(ctx).
+		Cols("user_id", "title", "description", "attachments", "status").
+		Insert(task)
 	if err == nil {
 		s.realtime.Broadcast(realtime.EventTasksChanged, map[string]any{"user_id": req.UserID})
 	}

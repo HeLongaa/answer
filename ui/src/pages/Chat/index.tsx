@@ -1235,9 +1235,6 @@ const Chat: FC = () => {
         setIsGenerating(false);
         refreshConversations().catch(() => undefined);
         refreshSubscription().catch(() => undefined);
-        refreshCurrentConversation(currentConversationID).catch(
-          () => undefined,
-        );
       },
     }).catch((err) => {
       setIsGenerating(false);
@@ -1341,9 +1338,6 @@ const Chat: FC = () => {
         setIsGenerating(false);
         refreshConversations().catch(() => undefined);
         refreshSubscription().catch(() => undefined);
-        refreshCurrentConversation(currentConversationID).catch(
-          () => undefined,
-        );
       },
     }).catch((err) => {
       setIsGenerating(false);
@@ -1938,7 +1932,6 @@ const Chat: FC = () => {
                                 setReasoningMenuModelID('');
                               }}>
                               <strong>{getModelName(model)}</strong>
-                              <span>{model.consume_rate} 点/次</span>
                             </button>
                             {modelSupportsReasoning ? (
                               <div className="hcai-model-reasoning-menu">

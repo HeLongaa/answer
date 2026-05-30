@@ -416,7 +416,6 @@ const ImageGenerationWorkspace: FC<IProps> = ({
 
   useEffect(() => {
     if (
-      generating ||
       !tasks.some(
         (task) => task.status === 'queued' || task.status === 'generating',
       )
@@ -432,7 +431,7 @@ const ImageGenerationWorkspace: FC<IProps> = ({
         .catch(() => undefined);
     }, 4000);
     return () => window.clearInterval(timer);
-  }, [generating, onRefreshSubscription, refreshImageGenerations, tasks]);
+  }, [onRefreshSubscription, refreshImageGenerations, tasks]);
 
   useEffect(() => {
     if (

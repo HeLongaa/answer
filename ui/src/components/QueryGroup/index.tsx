@@ -56,6 +56,14 @@ const Index: FC<Props> = ({
     keyPrefix: i18nKeyPrefix,
   });
 
+  const getSortKey = (btn) => (typeof btn === 'string' ? btn : btn.sort || '');
+  const getNameKey = (btn) =>
+    typeof btn === 'string' ? btn : btn.name || btn.sort || '';
+  const translateName = (name: string) =>
+    t(name, {
+      defaultValue: name,
+    });
+
   const handleParams = (order): string => {
     searchParams.delete('page');
     searchParams.set(sortKey, order);
@@ -77,23 +85,20 @@ const Index: FC<Props> = ({
   const moreBtnData = data.length > 4 ? data.slice(maxBtnCount) : [];
   const normalBtnData = data.length > 4 ? data.slice(0, maxBtnCount) : data;
   const currentBtn = moreBtnData.find((btn) => {
-    return (typeof btn === 'string' ? btn : btn.sort) === currentSort;
+    return getSortKey(btn) === currentSort;
   });
   const currentItem = data.find((btn) => {
-    return (typeof btn === 'string' ? btn : btn.sort) === currentSort;
+    return getSortKey(btn) === currentSort;
   });
-  const currentName = currentItem
-    ? typeof currentItem === 'string'
-      ? currentItem
-      : currentItem.name
-    : currentSort;
+  const currentName =
+    getNameKey(currentItem) || getNameKey(data[0]) || currentSort || 'more';
 
   return (
     <>
       <ButtonGroup size="sm" className={classNames('md-show', wrapClassName)}>
         {normalBtnData.map((btn) => {
-          const key = typeof btn === 'string' ? btn : btn.sort;
-          const name = typeof btn === 'string' ? btn : btn.name;
+          const key = getSortKey(btn);
+          const name = getNameKey(btn);
           return (
             <Button
               key={key}
@@ -106,7 +111,7 @@ const Index: FC<Props> = ({
                   : handleParams(key)
               }
               onClick={(evt) => handleClick(evt, key)}>
-              {t(name)}
+              {translateName(name)}
             </Button>
           );
         })}
@@ -119,7 +124,9 @@ const Index: FC<Props> = ({
             <Dropdown.Toggle
               size="sm"
               variant={currentBtn ? 'secondary' : 'outline-secondary'}>
-              {currentBtn ? t(currentBtn.name) : t('more')}
+              {currentBtn
+                ? translateName(getNameKey(currentBtn))
+                : translateName('more')}
             </Dropdown.Toggle>
             <Dropdown.Menu
               renderOnMount
@@ -131,8 +138,8 @@ const Index: FC<Props> = ({
                 ],
               }}>
               {moreBtnData.map((btn) => {
-                const key = typeof btn === 'string' ? btn : btn.sort;
-                const name = typeof btn === 'string' ? btn : btn.name;
+                const key = getSortKey(btn);
+                const name = getNameKey(btn);
                 return (
                   <Dropdown.Item
                     as="a"
@@ -145,7 +152,7 @@ const Index: FC<Props> = ({
                         : handleParams(key)
                     }
                     onClick={(evt) => handleClick(evt, key)}>
-                    {t(name)}
+                    {translateName(name)}
                   </Dropdown.Item>
                 );
               })}
@@ -161,7 +168,7 @@ const Index: FC<Props> = ({
           wrapClassName,
         )}>
         <Dropdown.Toggle size="sm" variant="outline-secondary">
-          {t(currentName)}
+          {translateName(currentName)}
         </Dropdown.Toggle>
         <Dropdown.Menu
           renderOnMount
@@ -173,8 +180,8 @@ const Index: FC<Props> = ({
             ],
           }}>
           {data.map((btn) => {
-            const key = typeof btn === 'string' ? btn : btn.sort;
-            const name = typeof btn === 'string' ? btn : btn.name;
+            const key = getSortKey(btn);
+            const name = getNameKey(btn);
             return (
               <Dropdown.Item
                 as="a"
@@ -187,7 +194,7 @@ const Index: FC<Props> = ({
                     : handleParams(key)
                 }
                 onClick={(evt) => handleClick(evt, key)}>
-                {t(name)}
+                {translateName(name)}
               </Dropdown.Item>
             );
           })}

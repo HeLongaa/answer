@@ -2008,13 +2008,31 @@ func (s *aiChatConfigService) callAndSaveImages(
 	userID string,
 	req *schema.AIImageGenerateReq,
 ) ([]string, error) {
+	if req.Count > 1 {
+		log.Infof("ai image batch split generation_id=%s requested_count=%d", generationID, req.Count)
+		imageURLs := make([]string, 0, req.Count)
+		singleReq := *req
+		singleReq.Count = 1
+		for i := 0; i < req.Count; i++ {
+			partGenerationID := fmt.Sprintf("%s_%d", generationID, i)
+			partURLs, err := s.callAndSaveImages(ctx, provider, model, partGenerationID, userID, &singleReq)
+			if err != nil {
+				return nil, err
+			}
+			imageURLs = append(imageURLs, partURLs...)
+		}
+		return imageURLs, nil
+	}
+
 	baseURL := strings.TrimRight(provider.BaseURL, "/")
 	prompt := buildImagePrompt(req)
 	payload := map[string]any{
-		"model":           model.ProviderModelID,
-		"prompt":          prompt,
-		"size":            req.Size,
-		"response_format": "b64_json",
+		"model":  model.ProviderModelID,
+		"prompt": prompt,
+		"size":   req.Size,
+	}
+	if shouldRequestImageResponseFormat(model.ProviderModelID) {
+		payload["response_format"] = "b64_json"
 	}
 	if req.Count > 1 {
 		payload["n"] = req.Count
@@ -2181,9 +2199,11 @@ func (s *aiChatConfigService) callImageEditsAPI(
 	useArrayField bool,
 ) ([]string, error) {
 	formData := map[string]string{
-		"model":           fmt.Sprint(basePayload["model"]),
-		"prompt":          prompt,
-		"response_format": "b64_json",
+		"model":  fmt.Sprint(basePayload["model"]),
+		"prompt": prompt,
+	}
+	if shouldRequestImageResponseFormat(fmt.Sprint(basePayload["model"])) {
+		formData["response_format"] = "b64_json"
 	}
 	if strings.TrimSpace(req.Size) != "" {
 		formData["size"] = req.Size
@@ -2817,6 +2837,11 @@ func normalizeOpenAIImageQuality(value string) string {
 	default:
 		return ""
 	}
+}
+
+func shouldRequestImageResponseFormat(model string) bool {
+	model = strings.ToLower(strings.TrimSpace(model))
+	return strings.HasPrefix(model, "dall-e-")
 }
 
 func normalizeOpenAIImageSize(size, aspectRatio string) string {
