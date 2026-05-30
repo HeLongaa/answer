@@ -19,6 +19,7 @@
 
 import {
   ChangeEvent,
+  CSSProperties,
   FC,
   FormEvent,
   useCallback,
@@ -87,6 +88,13 @@ interface EditTarget {
   imageURL: string;
 }
 
+interface PreviewImage {
+  src: string;
+  rawURL: string;
+  task: ImageTask;
+  imageIndex: number;
+}
+
 const sizeOptions = [
   { value: 'auto', label: '自动', meta: '模型决定', ratio: 'auto' },
   { value: '1024x1024', label: '1:1', meta: '1024 × 1024', ratio: '1:1' },
@@ -148,6 +156,74 @@ const normalizeTaskStatus = (status?: string): TaskStatus => {
   return 'completed';
 };
 
+const advanceProgress = (progress: number) => {
+  if (progress >= 92) {
+    return progress;
+  }
+  const step = progress < 58 ? 7 : progress < 78 ? 4 : 2;
+  return Math.min(92, progress + step);
+};
+
+const getTaskAspectRatio = (task: Pick<ImageTask, 'ratio' | 'size'>) => {
+  const sizeMatch = task.size?.match(/^(\d+)x(\d+)$/);
+  if (sizeMatch) {
+    return `${sizeMatch[1]} / ${sizeMatch[2]}`;
+  }
+  const ratioMatch = task.ratio?.match(/^(\d+):(\d+)$/);
+  if (ratioMatch) {
+    return `${ratioMatch[1]} / ${ratioMatch[2]}`;
+  }
+  return '1 / 1';
+};
+
+const getTaskAspectRatioParts = (task: Pick<ImageTask, 'ratio' | 'size'>) => {
+  const sizeMatch = task.size?.match(/^(\d+)x(\d+)$/);
+  if (sizeMatch) {
+    return {
+      width: Number(sizeMatch[1]) || 1,
+      height: Number(sizeMatch[2]) || 1,
+    };
+  }
+  const ratioMatch = task.ratio?.match(/^(\d+):(\d+)$/);
+  if (ratioMatch) {
+    return {
+      width: Number(ratioMatch[1]) || 1,
+      height: Number(ratioMatch[2]) || 1,
+    };
+  }
+  return { width: 1, height: 1 };
+};
+
+const hasImages = (urls?: string[]) => Boolean(urls?.filter(Boolean).length);
+
+const getTaskRetryKey = (
+  task: Pick<
+    ImageTask,
+    'prompt' | 'siteModelID' | 'size' | 'ratio' | 'style' | 'quality' | 'count'
+  >,
+) =>
+  [
+    task.prompt,
+    task.siteModelID,
+    task.size || task.ratio,
+    task.style,
+    task.quality,
+    task.count,
+  ].join('|');
+
+const removeRetrySupersededFailedTasks = (tasks: ImageTask[]) => {
+  const successfulRetryKeys = new Set(
+    tasks
+      .filter((task) => task.status !== 'failed')
+      .map((task) => getTaskRetryKey(task)),
+  );
+  return tasks.filter(
+    (task) =>
+      task.status !== 'failed' ||
+      !successfulRetryKeys.has(getTaskRetryKey(task)),
+  );
+};
+
 const mapGenerationToTask = (item: AiImageGeneration): ImageTask => {
   const imageURLs = item.image_urls || [];
   const taskStatus = normalizeTaskStatus(item.status);
@@ -204,6 +280,15 @@ const getDownloadFilename = (task?: ImageTask, imageIndex = 0) => {
   return `${task.id || 'ai-image'}-${imageIndex + 1}.png`;
 };
 
+const getImagePreviewStyle = (task: Pick<ImageTask, 'ratio' | 'size'>) => {
+  const ratioParts = getTaskAspectRatioParts(task);
+  return {
+    '--hcai-preview-ratio': getTaskAspectRatio(task),
+    '--hcai-preview-ratio-width': ratioParts.width,
+    '--hcai-preview-ratio-height': ratioParts.height,
+  } as CSSProperties;
+};
+
 const ImageGenerationWorkspace: FC<IProps> = ({
   subscription,
   onRefreshSubscription,
@@ -229,8 +314,11 @@ const ImageGenerationWorkspace: FC<IProps> = ({
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const [editPrompt, setEditPrompt] = useState('');
   const [editLoading, setEditLoading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<PreviewImage | null>(null);
   const [mobileTasksOpen, setMobileTasksOpen] = useState(false);
   const [mobileTaskPortalHost, setMobileTaskPortalHost] =
+    useState<Element | null>(null);
+  const [sidebarTaskPortalHost, setSidebarTaskPortalHost] =
     useState<Element | null>(null);
   const [imageBlobURLs, setImageBlobURLs] = useState<Record<string, string>>(
     {},
@@ -256,8 +344,20 @@ const ImageGenerationWorkspace: FC<IProps> = ({
 
   const refreshImageGenerations = useCallback(async () => {
     const resp = await getAiImageGenerations();
-    const historyTasks = (resp || []).map(mapGenerationToTask);
-    setTasks(historyTasks);
+    const rawHistoryTasks = (resp || []).map(mapGenerationToTask);
+    const historyTasks = removeRetrySupersededFailedTasks(rawHistoryTasks);
+    setTasks((prev) => {
+      const historyTaskIDs = new Set(historyTasks.map((task) => task.id));
+      const localPendingTasks = prev.filter(
+        (task) =>
+          (task.status === 'queued' || task.status === 'generating') &&
+          !historyTaskIDs.has(task.id),
+      );
+      return removeRetrySupersededFailedTasks([
+        ...localPendingTasks,
+        ...historyTasks,
+      ]);
+    });
     setActiveTaskID((prev) => {
       if (prev && historyTasks.some((task) => task.id === prev)) {
         return prev;
@@ -335,8 +435,42 @@ const ImageGenerationWorkspace: FC<IProps> = ({
   }, [generating, onRefreshSubscription, refreshImageGenerations, tasks]);
 
   useEffect(() => {
+    if (
+      !tasks.some(
+        (task) => task.status === 'queued' || task.status === 'generating',
+      )
+    ) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.status === 'queued' || task.status === 'generating'
+            ? { ...task, progress: advanceProgress(task.progress) }
+            : task,
+        ),
+      );
+    }, 900);
+    return () => window.clearInterval(timer);
+  }, [tasks]);
+
+  useEffect(() => {
     imageBlobURLsRef.current = imageBlobURLs;
   }, [imageBlobURLs]);
+
+  useEffect(() => {
+    if (!previewImage) {
+      return undefined;
+    }
+    const handleKeyDown = (evt: KeyboardEvent) => {
+      if (evt.key === 'Escape') {
+        setPreviewImage(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewImage]);
 
   useEffect(() => {
     return () => {
@@ -376,6 +510,12 @@ const ImageGenerationWorkspace: FC<IProps> = ({
       document.querySelector('.hcai-mobile-conversation-menu'),
     );
   }, [mobileTasksOpen]);
+
+  useEffect(() => {
+    setSidebarTaskPortalHost(
+      document.querySelector('#hcai-sidebar-image-tasks'),
+    );
+  }, []);
 
   useEffect(() => {
     const token = Storage.get(LOGGED_TOKEN_STORAGE_KEY) || '';
@@ -510,6 +650,15 @@ const ImageGenerationWorkspace: FC<IProps> = ({
     downloadImage(activeImageURL, activeTask, 0);
   };
 
+  const openImagePreview = (
+    task: ImageTask,
+    imageIndex: number,
+    src: string,
+    rawURL: string,
+  ) => {
+    setPreviewImage({ task, imageIndex, src, rawURL });
+  };
+
   const runImageTask = async (task: ImageTask) => {
     if (quotaRemaining !== -1 && quotaRemaining < task.count) {
       setError('剩余生图额度不足，请升级或兑换订阅');
@@ -538,21 +687,32 @@ const ImageGenerationWorkspace: FC<IProps> = ({
         count: task.count,
         reference_images: task.referenceImages,
       });
+      const nextImageURLs = resp.image_urls || [];
+      const nextTaskID = resp.generation_id || task.id;
       setTasks((prev) =>
-        prev.map((item) =>
-          item.id === task.id
-            ? {
-                ...item,
-                id: resp.generation_id || item.id,
-                size: resp.size || item.size,
-                status: 'completed',
-                progress: 100,
-                imageURLs: resp.image_urls || [],
-              }
-            : item,
+        removeRetrySupersededFailedTasks(
+          prev
+            .filter((item) => item.id === task.id || item.status !== 'failed')
+            .map((item) =>
+              item.id === task.id
+                ? {
+                    ...item,
+                    id: nextTaskID,
+                    size: resp.size || item.size,
+                    status: hasImages(nextImageURLs)
+                      ? 'completed'
+                      : 'generating',
+                    progress: hasImages(nextImageURLs) ? 100 : 92,
+                    imageURLs: nextImageURLs,
+                  }
+                : item,
+            ),
         ),
       );
-      setActiveTaskID(resp.generation_id || task.id);
+      setActiveTaskID(nextTaskID);
+      if (!hasImages(nextImageURLs)) {
+        refreshImageGenerations().catch(() => undefined);
+      }
       onRefreshSubscription();
     } catch (err: any) {
       setTasks((prev) =>
@@ -591,10 +751,15 @@ const ImageGenerationWorkspace: FC<IProps> = ({
     }
   };
 
-  const renderTaskItem = (task: ImageTask, closePanel = false) => (
+  const renderTaskItem = (
+    task: ImageTask,
+    closePanel = false,
+    showRetry = true,
+  ) => (
     <div
       className={classNames('hcai-task-item', {
         active: task.id === activeTaskID,
+        'has-retry': showRetry && task.status === 'failed',
       })}
       key={task.id}>
       <button
@@ -610,7 +775,7 @@ const ImageGenerationWorkspace: FC<IProps> = ({
         </div>
         <em>{getTaskStatusLabel(task.status)}</em>
       </button>
-      {task.status === 'failed' ? (
+      {showRetry && task.status === 'failed' ? (
         <button
           type="button"
           className="hcai-task-retry"
@@ -620,6 +785,22 @@ const ImageGenerationWorkspace: FC<IProps> = ({
           <span>重试</span>
         </button>
       ) : null}
+    </div>
+  );
+
+  const renderTaskPanel = (closePanel = false, showRetry = true) => (
+    <div className="hcai-task-panel">
+      <div className="hcai-task-head">
+        <span>任务队列</span>
+        <strong>{tasks.length}</strong>
+      </div>
+      <div className="hcai-task-list">
+        {tasks.length > 0 ? (
+          tasks.map((task) => renderTaskItem(task, closePanel, showRetry))
+        ) : (
+          <span className="hcai-task-empty">暂无任务</span>
+        )}
+      </div>
     </div>
   );
 
@@ -653,36 +834,72 @@ const ImageGenerationWorkspace: FC<IProps> = ({
       setError('原图片任务不存在，请刷新后重试');
       return;
     }
+    const editTaskID = uuidv4();
+    const nextTask: ImageTask = {
+      id: editTaskID,
+      prompt: editPrompt.trim(),
+      negativePrompt: task.negativePrompt,
+      model: task.model,
+      siteModelID: task.siteModelID,
+      ratio: task.ratio,
+      size: task.size,
+      style: task.style,
+      quality: task.quality,
+      count: 1,
+      status: 'generating',
+      createdAt: Date.now(),
+      progress: 12,
+      imageURLs: [],
+      referenceImages: [editTarget.imageURL],
+    };
+    const sourceImageURL = editTarget.imageURL;
+    const editPromptValue = editPrompt.trim();
     setEditLoading(true);
     setError('');
+    setTasks((prev) => [nextTask, ...prev]);
+    setActiveTaskID(editTaskID);
+    setEditTarget(null);
+    setEditPrompt('');
     try {
       const resp = await editAiImage({
-        prompt: editPrompt.trim(),
-        image_url: editTarget.imageURL,
+        prompt: editPromptValue,
+        image_url: sourceImageURL,
         model: task.siteModelID,
         size: task.size,
         quality: task.quality,
       });
       const nextURLs = resp.image_urls || [];
+      const nextTaskID = resp.generation_id || editTaskID;
       setTasks((prev) =>
-        prev.map((item) => {
-          if (item.id !== task.id) {
-            return item;
-          }
-          const imageURLs = [...item.imageURLs, ...nextURLs];
-          return {
-            ...item,
-            imageURLs,
-            count: Math.max(item.count, imageURLs.length),
-          };
-        }),
+        prev.map((item) =>
+          item.id === editTaskID
+            ? {
+                ...item,
+                id: nextTaskID,
+                size: resp.size || item.size,
+                status: hasImages(nextURLs) ? 'completed' : 'generating',
+                progress: hasImages(nextURLs) ? 100 : 92,
+                imageURLs: nextURLs,
+                count: Math.max(1, nextURLs.length),
+              }
+            : item,
+        ),
       );
-      setActiveTaskID(task.id);
-      setEditTarget(null);
-      setEditPrompt('');
-      showActionNotice('编辑完成');
+      setActiveTaskID(nextTaskID);
+      if (hasImages(nextURLs)) {
+        showActionNotice('编辑完成');
+      } else {
+        refreshImageGenerations().catch(() => undefined);
+      }
       onRefreshSubscription();
     } catch (err: any) {
+      setTasks((prev) =>
+        prev.map((item) =>
+          item.id === editTaskID
+            ? { ...item, status: 'failed', progress: 100 }
+            : item,
+        ),
+      );
       setError(err?.msg || '图片编辑失败，请稍后重试');
     } finally {
       setEditLoading(false);
@@ -727,22 +944,15 @@ const ImageGenerationWorkspace: FC<IProps> = ({
 
   return (
     <div className="hcai-image-workspace">
+      {sidebarTaskPortalHost
+        ? createPortal(renderTaskPanel(false, false), sidebarTaskPortalHost)
+        : null}
       {mobileTasksOpen && mobileTaskPortalHost
         ? createPortal(
             <div
               id="hcai-mobile-image-tasks"
               className="hcai-mobile-conversation-panel hcai-mobile-task-panel">
-              <div className="hcai-task-head">
-                <span>任务队列</span>
-                <strong>{tasks.length}</strong>
-              </div>
-              <div className="hcai-task-list">
-                {tasks.length > 0 ? (
-                  tasks.map((task) => renderTaskItem(task, true))
-                ) : (
-                  <span className="hcai-task-empty">暂无任务</span>
-                )}
-              </div>
+              {renderTaskPanel(true)}
             </div>,
             mobileTaskPortalHost,
           )
@@ -943,7 +1153,10 @@ const ImageGenerationWorkspace: FC<IProps> = ({
                   : '';
                 return (
                   <div
-                    className="hcai-preview-tile"
+                    className={classNames('hcai-preview-tile', {
+                      'has-image': Boolean(rawImageURL),
+                    })}
+                    style={getImagePreviewStyle(activeTask)}
                     key={`${activeTask.id}-${tileNumber + 1}`}>
                     {activeTask.status === 'generating' ? (
                       <div className="hcai-preview-progress">
@@ -952,10 +1165,23 @@ const ImageGenerationWorkspace: FC<IProps> = ({
                     ) : rawImageURL ? (
                       displayImageURL ? (
                         <>
-                          <img
-                            src={displayImageURL}
-                            alt={`${activeTask.prompt}-${tileNumber + 1}`}
-                          />
+                          <button
+                            type="button"
+                            className="hcai-preview-image-button"
+                            onClick={() =>
+                              openImagePreview(
+                                activeTask,
+                                tileNumber,
+                                displayImageURL,
+                                rawImageURL,
+                              )
+                            }>
+                            <img
+                              className="hcai-preview-image"
+                              src={displayImageURL}
+                              alt={`${activeTask.prompt}-${tileNumber + 1}`}
+                            />
+                          </button>
                           <div className="hcai-preview-tile-meta">
                             <div>
                               <strong>{activeTask.prompt}</strong>
@@ -1037,16 +1263,51 @@ const ImageGenerationWorkspace: FC<IProps> = ({
           )}
         </div>
 
-        <div className="hcai-task-panel">
-          <div className="hcai-task-head">
-            <span>任务队列</span>
-            <strong>{tasks.length}</strong>
-          </div>
-          <div className="hcai-task-list">
-            {tasks.map((task) => renderTaskItem(task))}
-          </div>
-        </div>
+        {renderTaskPanel()}
       </section>
+      {previewImage ? (
+        <div className="hcai-image-lightbox" role="dialog" aria-modal="true">
+          <button
+            type="button"
+            className="hcai-image-lightbox-backdrop"
+            aria-label="关闭预览"
+            onClick={() => setPreviewImage(null)}
+          />
+          <div className="hcai-image-lightbox-bar">
+            <div>
+              <strong>{previewImage.task.prompt}</strong>
+              <span>
+                尺寸 {previewImage.task.size || previewImage.task.ratio}
+              </span>
+            </div>
+            <button
+              type="button"
+              title="下载"
+              aria-label="下载"
+              onClick={(evt) => {
+                evt.stopPropagation();
+                downloadImage(
+                  resolveImageURL(previewImage.rawURL),
+                  previewImage.task,
+                  previewImage.imageIndex,
+                );
+              }}>
+              <Icon name="download" />
+            </button>
+            <button
+              type="button"
+              title="关闭"
+              aria-label="关闭"
+              onClick={(evt) => {
+                evt.stopPropagation();
+                setPreviewImage(null);
+              }}>
+              <Icon name="x-lg" />
+            </button>
+          </div>
+          <img src={previewImage.src} alt={previewImage.task.prompt} />
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -33,8 +33,13 @@ func addAIImageGeneration(ctx context.Context, x *xorm.Engine) error {
 		new(entity.AIImageModel),
 		new(entity.AIImageSetting),
 		new(entity.AIImageGeneration),
+		new(entity.AIVideoProvider),
+		new(entity.AIVideoModel),
+		new(entity.AIVideoSetting),
+		new(entity.AIVideoGeneration),
+		new(entity.AISubscriptionPlan),
 	); err != nil {
-		return fmt.Errorf("sync ai image generation tables failed: %w", err)
+		return fmt.Errorf("sync ai image and video generation tables failed: %w", err)
 	}
 
 	setting := &entity.AIImageSetting{ID: 1, RetentionDays: 30}
@@ -45,6 +50,16 @@ func addAIImageGeneration(ctx context.Context, x *xorm.Engine) error {
 	if !exist {
 		if _, err := x.Context(ctx).Insert(setting); err != nil {
 			return fmt.Errorf("insert ai image setting failed: %w", err)
+		}
+	}
+	videoSetting := &entity.AIVideoSetting{ID: 1, RetentionDays: 30}
+	videoExist, err := x.Context(ctx).ID(1).Exist(new(entity.AIVideoSetting))
+	if err != nil {
+		return fmt.Errorf("check ai video setting failed: %w", err)
+	}
+	if !videoExist {
+		if _, err := x.Context(ctx).Insert(videoSetting); err != nil {
+			return fmt.Errorf("insert ai video setting failed: %w", err)
 		}
 	}
 	return nil

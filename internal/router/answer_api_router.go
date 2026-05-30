@@ -350,6 +350,10 @@ func (a *AnswerAPIRouter) RegisterAnswerAPIRouter(r *gin.RouterGroup) {
 	r.GET("/ai-image/assets/:user_id/:filename", a.aiController.GetImageAsset)
 	r.POST("/ai-image/generations", a.aiController.GenerateImage)
 	r.POST("/ai-image/edits", a.aiController.EditImage)
+	r.GET("/ai-video/models", a.aiController.GetAIVideoModels)
+	r.GET("/ai-video/generations", a.aiController.GetVideoGenerations)
+	r.GET("/ai-video/assets/:user_id/:filename", a.aiController.GetVideoAsset)
+	r.POST("/ai-video/generations", a.aiController.GenerateVideo)
 
 	// task square
 	r.GET("/tasks", a.taskSquareController.ListTasks)
@@ -490,6 +494,16 @@ func (a *AnswerAPIRouter) RegisterAnswerAdminAPIRouter(r *gin.RouterGroup) {
 	r.DELETE("/ai-chat/image-models/:id", a.aiChatConfigController.DeleteImageModel)
 	r.GET("/ai-chat/image-setting", a.aiChatConfigController.GetImageSetting)
 	r.PUT("/ai-chat/image-setting", a.aiChatConfigController.SaveImageSetting)
+	r.GET("/ai-chat/video-providers", a.aiChatConfigController.ListVideoProviders)
+	r.POST("/ai-chat/video-providers", a.aiChatConfigController.CreateVideoProvider)
+	r.PUT("/ai-chat/video-providers/:id", a.aiChatConfigController.UpdateVideoProvider)
+	r.DELETE("/ai-chat/video-providers/:id", a.aiChatConfigController.DeleteVideoProvider)
+	r.GET("/ai-chat/video-models", a.aiChatConfigController.ListVideoModels)
+	r.POST("/ai-chat/video-models", a.aiChatConfigController.CreateVideoModel)
+	r.PUT("/ai-chat/video-models/:id", a.aiChatConfigController.UpdateVideoModel)
+	r.DELETE("/ai-chat/video-models/:id", a.aiChatConfigController.DeleteVideoModel)
+	r.GET("/ai-chat/video-setting", a.aiChatConfigController.GetVideoSetting)
+	r.PUT("/ai-chat/video-setting", a.aiChatConfigController.SaveVideoSetting)
 
 	// ai config
 	r.GET("/ai-config", a.adminSiteInfoController.GetAIConfig)

@@ -41,55 +41,69 @@ const Index: FC<Props> = ({ visible, introduction, data, username }) => {
     return null;
   }
   return (
-    <div>
-      <h5 className="mb-3">{t('about_me')}</h5>
-      {introduction ? (
-        <div
-          className="mb-5 text-break fmt"
-          dangerouslySetInnerHTML={{ __html: introduction }}
-        />
-      ) : (
-        <div className="mb-5">{t('about_me_empty')}</div>
-      )}
+    <div className="personal-overview">
+      <div className="card personal-card personal-overview-card mb-4">
+        <div className="card-body">
+          <h5 className="mb-3">{t('about_me')}</h5>
+          {introduction ? (
+            <div
+              className="personal-about text-break fmt"
+              dangerouslySetInnerHTML={{ __html: introduction }}
+            />
+          ) : (
+            <div className="personal-empty">{t('about_me_empty')}</div>
+          )}
+        </div>
+      </div>
 
       <Row className="mb-4">
         <Col sm={12} md={6} className="mb-4">
-          <h5 className="mb-3">{t('top_answers')}</h5>
-          {data?.answer?.length > 0 ? (
-            <TopList data={data?.answer} type="answer" />
-          ) : (
-            <div className="mb-5">{t('content_empty')}</div>
-          )}
+          <div className="card personal-card personal-top-card h-100">
+            <div className="card-body">
+              <h5 className="mb-3">{t('top_answers')}</h5>
+              {data?.answer?.length > 0 ? (
+                <TopList data={data?.answer} type="answer" />
+              ) : (
+                <div className="personal-empty">{t('content_empty')}</div>
+              )}
+            </div>
+          </div>
         </Col>
         <Col sm={12} md={6}>
-          <h5 className="mb-3">{t('top_questions')}</h5>
-          {data?.question?.length > 0 ? (
-            <TopList data={data?.question} type="question" />
-          ) : (
-            <div className="mb-5">{t('content_empty')}</div>
-          )}
+          <div className="card personal-card personal-top-card h-100">
+            <div className="card-body">
+              <h5 className="mb-3">{t('top_questions')}</h5>
+              {data?.question?.length > 0 ? (
+                <TopList data={data?.question} type="question" />
+              ) : (
+                <div className="personal-empty">{t('content_empty')}</div>
+              )}
+            </div>
+          </div>
         </Col>
       </Row>
 
-      <div className="mb-4">
-        <h5 className="mb-3">{t('recent_badges')}</h5>
-        {Number(recentBadges?.count) > 0 ? (
-          <Row>
-            {recentBadges?.list?.map((item) => {
-              return (
-                <Col sm={6} md={4} lg={3} key={item.id} className="mb-4">
-                  <CardBadge
-                    data={item}
-                    urlSearchParams={`username=${username}`}
-                    badgePillType="count"
-                  />
-                </Col>
-              );
-            })}
-          </Row>
-        ) : (
-          <div className="mb-5">{t('content_empty')}</div>
-        )}
+      <div className="card personal-card personal-badges-card mb-4">
+        <div className="card-body">
+          <h5 className="mb-3">{t('recent_badges')}</h5>
+          {Number(recentBadges?.count) > 0 ? (
+            <Row>
+              {recentBadges?.list?.map((item) => {
+                return (
+                  <Col sm={6} md={4} lg={3} key={item.id} className="mb-4">
+                    <CardBadge
+                      data={item}
+                      urlSearchParams={`username=${username}`}
+                      badgePillType="count"
+                    />
+                  </Col>
+                );
+              })}
+            </Row>
+          ) : (
+            <div className="personal-empty">{t('content_empty')}</div>
+          )}
+        </div>
       </div>
     </div>
   );

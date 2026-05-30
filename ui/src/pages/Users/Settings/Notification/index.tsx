@@ -112,16 +112,18 @@ const Index = () => {
     setFormData(ud);
   };
   return (
-    <>
-      <h3 className="mb-4">{t('heading')}</h3>
-      <SchemaForm
-        schema={schema}
-        uiSchema={uiSchema}
-        formData={formData}
-        onChange={handleChange}
-        onSubmit={handleSubmit}
-      />
-    </>
+    <div className="card settings-content-card">
+      <div className="card-body">
+        <h3 className="mb-4">{t('heading')}</h3>
+        <SchemaForm
+          schema={schema}
+          uiSchema={uiSchema}
+          formData={formData}
+          onChange={handleChange}
+          onSubmit={handleSubmit}
+        />
+      </div>
+    </div>
   );
 };
 

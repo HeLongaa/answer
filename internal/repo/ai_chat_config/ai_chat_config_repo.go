@@ -69,6 +69,7 @@ type AIChatConfigRepo interface {
 	SumUserChatUsage(ctx context.Context, userID string, startAt, endAt any) (float64, error)
 
 	EnsureImageTables(ctx context.Context) error
+	EnsureVideoTables(ctx context.Context) error
 	ListImageProviders(ctx context.Context) ([]*entity.AIImageProvider, error)
 	GetImageProvider(ctx context.Context, id int) (*entity.AIImageProvider, bool, error)
 	CreateImageProvider(ctx context.Context, provider *entity.AIImageProvider) error
@@ -85,6 +86,23 @@ type AIChatConfigRepo interface {
 	UpdateImageGeneration(ctx context.Context, generationID string, generation *entity.AIImageGeneration, cols ...string) error
 	ListUserImageGenerations(ctx context.Context, userID string, limit int) ([]*entity.AIImageGeneration, error)
 	CountUserImageGenerations(ctx context.Context, userID string, startAt, endAt any) (int, error)
+	ListVideoProviders(ctx context.Context) ([]*entity.AIVideoProvider, error)
+	GetVideoProvider(ctx context.Context, id int) (*entity.AIVideoProvider, bool, error)
+	CreateVideoProvider(ctx context.Context, provider *entity.AIVideoProvider) error
+	UpdateVideoProvider(ctx context.Context, provider *entity.AIVideoProvider, cols ...string) error
+	DeleteVideoProvider(ctx context.Context, id int) error
+	ListVideoModels(ctx context.Context, onlyEnabled bool) ([]*entity.AIVideoModel, error)
+	GetVideoModel(ctx context.Context, id int) (*entity.AIVideoModel, bool, error)
+	GetVideoModelBySiteModelID(ctx context.Context, siteModelID string) (*entity.AIVideoModel, bool, error)
+	SaveVideoModel(ctx context.Context, model *entity.AIVideoModel) error
+	DeleteVideoModel(ctx context.Context, id int) error
+	GetVideoSetting(ctx context.Context) (*entity.AIVideoSetting, bool, error)
+	SaveVideoSetting(ctx context.Context, setting *entity.AIVideoSetting) error
+	CreateVideoGeneration(ctx context.Context, generation *entity.AIVideoGeneration) error
+	UpdateVideoGeneration(ctx context.Context, generationID string, generation *entity.AIVideoGeneration, cols ...string) error
+	GetVideoGeneration(ctx context.Context, generationID string) (*entity.AIVideoGeneration, bool, error)
+	ListUserVideoGenerations(ctx context.Context, userID string, limit int) ([]*entity.AIVideoGeneration, error)
+	CountUserVideoGenerations(ctx context.Context, userID string, startAt, endAt any) (int, error)
 }
 
 type aiChatConfigRepo struct {
@@ -429,6 +447,27 @@ func (r *aiChatConfigRepo) EnsureImageTables(ctx context.Context) error {
 	return err
 }
 
+func (r *aiChatConfigRepo) EnsureVideoTables(ctx context.Context) error {
+	if err := r.data.DB.Context(ctx).Sync(
+		new(entity.AISubscriptionPlan),
+		new(entity.AIVideoProvider),
+		new(entity.AIVideoModel),
+		new(entity.AIVideoSetting),
+		new(entity.AIVideoGeneration),
+	); err != nil {
+		return err
+	}
+	exist, err := r.data.DB.Context(ctx).ID(1).Exist(new(entity.AIVideoSetting))
+	if err != nil || exist {
+		return err
+	}
+	_, err = r.data.DB.Context(ctx).Insert(&entity.AIVideoSetting{
+		ID:            1,
+		RetentionDays: 30,
+	})
+	return err
+}
+
 func (r *aiChatConfigRepo) ListImageProviders(ctx context.Context) ([]*entity.AIImageProvider, error) {
 	list := make([]*entity.AIImageProvider, 0)
 	return list, r.data.DB.Context(ctx).Asc("id").Find(&list)
@@ -552,6 +591,146 @@ func (r *aiChatConfigRepo) CountUserImageGenerations(ctx context.Context, userID
 	ok, err := r.data.DB.Context(ctx).
 		Table(new(entity.AIImageGeneration)).
 		Select("COALESCE(SUM(count), 0) AS count").
+		Where("user_id = ?", userID).
+		And("status = ?", "completed").
+		And("created_at >= ?", startAt).
+		And("created_at < ?", endAt).
+		Get(&total)
+	if err != nil || !ok {
+		return 0, err
+	}
+	return total.Count, nil
+}
+
+func (r *aiChatConfigRepo) ListVideoProviders(ctx context.Context) ([]*entity.AIVideoProvider, error) {
+	list := make([]*entity.AIVideoProvider, 0)
+	return list, r.data.DB.Context(ctx).Asc("id").Find(&list)
+}
+
+func (r *aiChatConfigRepo) GetVideoProvider(ctx context.Context, id int) (*entity.AIVideoProvider, bool, error) {
+	provider := &entity.AIVideoProvider{}
+	exist, err := r.data.DB.Context(ctx).ID(id).Get(provider)
+	return provider, exist, err
+}
+
+func (r *aiChatConfigRepo) CreateVideoProvider(ctx context.Context, provider *entity.AIVideoProvider) error {
+	_, err := r.data.DB.Context(ctx).Insert(provider)
+	return err
+}
+
+func (r *aiChatConfigRepo) UpdateVideoProvider(ctx context.Context, provider *entity.AIVideoProvider, cols ...string) error {
+	session := r.data.DB.Context(ctx).ID(provider.ID)
+	if len(cols) > 0 {
+		session = session.Cols(cols...)
+	}
+	_, err := session.Update(provider)
+	return err
+}
+
+func (r *aiChatConfigRepo) DeleteVideoProvider(ctx context.Context, id int) error {
+	_, err := r.data.DB.Transaction(func(session *xorm.Session) (any, error) {
+		if _, err := session.Context(ctx).Where("provider_id = ?", id).Delete(new(entity.AIVideoModel)); err != nil {
+			return nil, err
+		}
+		_, err := session.Context(ctx).ID(id).Delete(new(entity.AIVideoProvider))
+		return nil, err
+	})
+	return err
+}
+
+func (r *aiChatConfigRepo) ListVideoModels(ctx context.Context, onlyEnabled bool) ([]*entity.AIVideoModel, error) {
+	list := make([]*entity.AIVideoModel, 0)
+	session := r.data.DB.Context(ctx).Asc("sort_order", "id")
+	if onlyEnabled {
+		session = session.Where("enabled = ?", true)
+	}
+	return list, session.Find(&list)
+}
+
+func (r *aiChatConfigRepo) GetVideoModel(ctx context.Context, id int) (*entity.AIVideoModel, bool, error) {
+	model := &entity.AIVideoModel{}
+	exist, err := r.data.DB.Context(ctx).ID(id).Get(model)
+	return model, exist, err
+}
+
+func (r *aiChatConfigRepo) GetVideoModelBySiteModelID(ctx context.Context, siteModelID string) (*entity.AIVideoModel, bool, error) {
+	model := &entity.AIVideoModel{}
+	exist, err := r.data.DB.Context(ctx).Where("site_model_id = ?", siteModelID).Get(model)
+	return model, exist, err
+}
+
+func (r *aiChatConfigRepo) SaveVideoModel(ctx context.Context, model *entity.AIVideoModel) error {
+	if model.ID > 0 {
+		_, err := r.data.DB.Context(ctx).ID(model.ID).AllCols().Update(model)
+		return err
+	}
+	_, err := r.data.DB.Context(ctx).Insert(model)
+	return err
+}
+
+func (r *aiChatConfigRepo) DeleteVideoModel(ctx context.Context, id int) error {
+	_, err := r.data.DB.Context(ctx).ID(id).Delete(new(entity.AIVideoModel))
+	return err
+}
+
+func (r *aiChatConfigRepo) GetVideoSetting(ctx context.Context) (*entity.AIVideoSetting, bool, error) {
+	setting := &entity.AIVideoSetting{}
+	exist, err := r.data.DB.Context(ctx).ID(1).Get(setting)
+	return setting, exist, err
+}
+
+func (r *aiChatConfigRepo) SaveVideoSetting(ctx context.Context, setting *entity.AIVideoSetting) error {
+	setting.ID = 1
+	exist, err := r.data.DB.Context(ctx).ID(1).Exist(new(entity.AIVideoSetting))
+	if err != nil {
+		return err
+	}
+	if exist {
+		_, err = r.data.DB.Context(ctx).ID(1).Cols("retention_days").Update(setting)
+		return err
+	}
+	_, err = r.data.DB.Context(ctx).Insert(setting)
+	return err
+}
+
+func (r *aiChatConfigRepo) CreateVideoGeneration(ctx context.Context, generation *entity.AIVideoGeneration) error {
+	_, err := r.data.DB.Context(ctx).Insert(generation)
+	return err
+}
+
+func (r *aiChatConfigRepo) UpdateVideoGeneration(ctx context.Context, generationID string, generation *entity.AIVideoGeneration, cols ...string) error {
+	_, err := r.data.DB.Context(ctx).
+		Where("generation_id = ?", generationID).
+		Cols(cols...).
+		Update(generation)
+	return err
+}
+
+func (r *aiChatConfigRepo) GetVideoGeneration(ctx context.Context, generationID string) (*entity.AIVideoGeneration, bool, error) {
+	generation := &entity.AIVideoGeneration{}
+	exist, err := r.data.DB.Context(ctx).Where("generation_id = ?", generationID).Get(generation)
+	return generation, exist, err
+}
+
+func (r *aiChatConfigRepo) ListUserVideoGenerations(ctx context.Context, userID string, limit int) ([]*entity.AIVideoGeneration, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 30
+	}
+	list := make([]*entity.AIVideoGeneration, 0)
+	return list, r.data.DB.Context(ctx).
+		Where("user_id = ?", userID).
+		Desc("id").
+		Limit(limit).
+		Find(&list)
+}
+
+func (r *aiChatConfigRepo) CountUserVideoGenerations(ctx context.Context, userID string, startAt, endAt any) (int, error) {
+	var total struct {
+		Count int `xorm:"count"`
+	}
+	ok, err := r.data.DB.Context(ctx).
+		Table(new(entity.AIVideoGeneration)).
+		Select("COUNT(1) AS count").
 		Where("user_id = ?", userID).
 		And("status = ?", "completed").
 		And("created_at >= ?", startAt).

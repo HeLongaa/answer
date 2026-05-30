@@ -120,16 +120,18 @@ const Index = () => {
     getLangs();
   }, []);
   return (
-    <>
-      <h3 className="mb-4">{t('heading')}</h3>
-      <SchemaForm
-        schema={schema}
-        uiSchema={uiSchema}
-        formData={formData}
-        onChange={handleOnChange}
-        onSubmit={handleSubmit}
-      />
-    </>
+    <div className="card settings-content-card">
+      <div className="card-body">
+        <h3 className="mb-4">{t('heading')}</h3>
+        <SchemaForm
+          schema={schema}
+          uiSchema={uiSchema}
+          formData={formData}
+          onChange={handleOnChange}
+          onSubmit={handleSubmit}
+        />
+      </div>
+    </div>
   );
 };
 

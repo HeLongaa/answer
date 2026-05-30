@@ -42,11 +42,15 @@ import {
   createAiChatSubscriptionPlan,
   createAdminAiImageModel,
   createAdminAiImageProvider,
+  createAdminAiVideoModel,
+  createAdminAiVideoProvider,
   deleteAiChatModelMapping,
   deleteAiChatProvider,
   deleteAiChatSubscriptionPlan,
   deleteAdminAiImageModel,
   deleteAdminAiImageProvider,
+  deleteAdminAiVideoModel,
+  deleteAdminAiVideoProvider,
   fetchAiChatProviderModels,
   generateAiChatRedeemCodes,
   getAiChatConsumeRates,
@@ -57,6 +61,9 @@ import {
   getAdminAiImageModels,
   getAdminAiImageProviders,
   getAdminAiImageSetting,
+  getAdminAiVideoModels,
+  getAdminAiVideoProviders,
+  getAdminAiVideoSetting,
   testAiChatProviderModel,
   updateAiChatConsumeRate,
   updateAiChatModelMapping,
@@ -65,6 +72,9 @@ import {
   updateAdminAiImageModel,
   updateAdminAiImageProvider,
   updateAdminAiImageSetting,
+  updateAdminAiVideoModel,
+  updateAdminAiVideoProvider,
+  updateAdminAiVideoSetting,
 } from '@/services';
 
 import './index.scss';
@@ -109,6 +119,8 @@ const planInit = {
   monthly_price: 0,
   chat_points: 0,
   image_quota: 0,
+  video_daily_quota: 0,
+  video_quota: 0,
   purchase_url: '',
   model_mapping_ids: [] as number[],
   task_description: '',
@@ -148,6 +160,34 @@ const imageSettingInit = {
   retention_days: 30,
 };
 
+const videoProviderInit = {
+  id: 0,
+  name: '',
+  base_url: 'http://localhost:8000/v1',
+  api_key: '',
+  enabled: true,
+  remark: '',
+};
+
+const videoModelInit = {
+  id: 0,
+  provider_id: 0,
+  site_model_id: 'grok-imagine-video',
+  provider_model_id: 'grok-imagine-video',
+  display_name: 'Grok Imagine Video',
+  description: '',
+  default_size: '1280x720',
+  default_seconds: 6,
+  default_resolution: '720p',
+  default_preset: 'custom',
+  enabled: true,
+  sort_order: 0,
+};
+
+const videoSettingInit = {
+  retention_days: 30,
+};
+
 const redeemInit = {
   plan_id: 0,
   count: 10,
@@ -163,6 +203,7 @@ const tabKeys = [
   'redeem-codes',
   'rates',
   'images',
+  'videos',
 ];
 
 const formatQuota = (value: number) => (value === -1 ? '无限制' : value);
@@ -185,6 +226,8 @@ const AiChatConfig = () => {
   const [rates, setRates] = useState<any[]>([]);
   const [imageProviders, setImageProviders] = useState<any[]>([]);
   const [imageModels, setImageModels] = useState<any[]>([]);
+  const [videoProviders, setVideoProviders] = useState<any[]>([]);
+  const [videoModels, setVideoModels] = useState<any[]>([]);
   const [providerForm, setProviderForm] = useState(providerInit);
   const [mappingForm, setMappingForm] = useState(mappingInit);
   const [planForm, setPlanForm] = useState(planInit);
@@ -192,6 +235,9 @@ const AiChatConfig = () => {
   const [imageProviderForm, setImageProviderForm] = useState(imageProviderInit);
   const [imageModelForm, setImageModelForm] = useState(imageModelInit);
   const [imageSettingForm, setImageSettingForm] = useState(imageSettingInit);
+  const [videoProviderForm, setVideoProviderForm] = useState(videoProviderInit);
+  const [videoModelForm, setVideoModelForm] = useState(videoModelInit);
+  const [videoSettingForm, setVideoSettingForm] = useState(videoSettingInit);
   const [redeemForm, setRedeemForm] = useState(redeemInit);
   const [generatedCodes, setGeneratedCodes] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState(
@@ -236,6 +282,9 @@ const AiChatConfig = () => {
         imageProviderData,
         imageModelData,
         imageSettingData,
+        videoProviderData,
+        videoModelData,
+        videoSettingData,
       ] = await Promise.all([
         getAiChatProviders(),
         getAiChatModelMappings(),
@@ -245,6 +294,9 @@ const AiChatConfig = () => {
         getAdminAiImageProviders(),
         getAdminAiImageModels(),
         getAdminAiImageSetting(),
+        getAdminAiVideoProviders(),
+        getAdminAiVideoModels(),
+        getAdminAiVideoSetting(),
       ]);
       setProviders(providerData || []);
       setMappings(mappingData || []);
@@ -254,6 +306,9 @@ const AiChatConfig = () => {
       setImageProviders(imageProviderData || []);
       setImageModels(imageModelData || []);
       setImageSettingForm(imageSettingData || imageSettingInit);
+      setVideoProviders(videoProviderData || []);
+      setVideoModels(videoModelData || []);
+      setVideoSettingForm(videoSettingData || videoSettingInit);
     } catch (err: any) {
       setError(err?.msg || '加载 AI-CHAT 配置失败');
     } finally {
@@ -328,6 +383,8 @@ const AiChatConfig = () => {
         monthly_price: Number(planForm.monthly_price),
         chat_points: Number(planForm.chat_points),
         image_quota: Number(planForm.image_quota),
+        video_daily_quota: Number(planForm.video_daily_quota),
+        video_quota: Number(planForm.video_quota),
         sort_order: Number(planForm.sort_order),
         model_mapping_ids: planForm.model_mapping_ids.map(Number),
       };
@@ -419,6 +476,63 @@ const AiChatConfig = () => {
       await loadAll();
     } catch (err: any) {
       setError(err?.msg || '生图保存时间更新失败');
+    }
+  };
+
+  const submitVideoProvider = async (evt: FormEvent) => {
+    evt.preventDefault();
+    setError('');
+    try {
+      if (videoProviderForm.id) {
+        await updateAdminAiVideoProvider(
+          videoProviderForm.id,
+          videoProviderForm,
+        );
+      } else {
+        await createAdminAiVideoProvider(videoProviderForm);
+      }
+      setVideoProviderForm(videoProviderInit);
+      showSuccess('视频 Provider 已保存');
+      await loadAll();
+    } catch (err: any) {
+      setError(err?.msg || '视频 Provider 保存失败');
+    }
+  };
+
+  const submitVideoModel = async (evt: FormEvent) => {
+    evt.preventDefault();
+    setError('');
+    try {
+      const payload = {
+        ...videoModelForm,
+        provider_id: Number(videoModelForm.provider_id),
+        default_seconds: Number(videoModelForm.default_seconds),
+        sort_order: Number(videoModelForm.sort_order),
+      };
+      if (videoModelForm.id) {
+        await updateAdminAiVideoModel(videoModelForm.id, payload);
+      } else {
+        await createAdminAiVideoModel(payload);
+      }
+      setVideoModelForm(videoModelInit);
+      showSuccess('视频模型已保存');
+      await loadAll();
+    } catch (err: any) {
+      setError(err?.msg || '视频模型保存失败');
+    }
+  };
+
+  const submitVideoSetting = async (evt: FormEvent) => {
+    evt.preventDefault();
+    setError('');
+    try {
+      await updateAdminAiVideoSetting({
+        retention_days: Number(videoSettingForm.retention_days),
+      });
+      showSuccess('视频保存时间已更新');
+      await loadAll();
+    } catch (err: any) {
+      setError(err?.msg || '视频保存时间更新失败');
     }
   };
 
@@ -1078,6 +1192,46 @@ const AiChatConfig = () => {
                     </Form.Group>
                   </Col>
                 </Row>
+                <Row>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>每日视频次数</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="-1"
+                        value={planForm.video_daily_quota}
+                        onChange={(e) =>
+                          setPlanForm({
+                            ...planForm,
+                            video_daily_quota: Number(e.target.value),
+                          })
+                        }
+                      />
+                      <Form.Text className="text-muted">
+                        -1 表示无限制
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>每月视频次数</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="-1"
+                        value={planForm.video_quota}
+                        onChange={(e) =>
+                          setPlanForm({
+                            ...planForm,
+                            video_quota: Number(e.target.value),
+                          })
+                        }
+                      />
+                      <Form.Text className="text-muted">
+                        -1 表示无限制
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                </Row>
                 <Form.Group className="mb-3">
                   <Form.Label>购买链接</Form.Label>
                   <Form.Control
@@ -1161,6 +1315,7 @@ const AiChatConfig = () => {
                 <th>等级</th>
                 <th>价格</th>
                 <th>点数 / 图片</th>
+                <th>视频额度</th>
                 <th>购买链接</th>
                 <th>可用模型</th>
                 <th>状态</th>
@@ -1177,6 +1332,10 @@ const AiChatConfig = () => {
                   <td>{plan.monthly_price}</td>
                   <td>
                     {formatQuota(plan.chat_points)} / {plan.image_quota}
+                  </td>
+                  <td>
+                    日 {formatQuota(plan.video_daily_quota)} / 月{' '}
+                    {formatQuota(plan.video_quota)}
                   </td>
                   <td>{plan.purchase_url ? '已配置' : '未配置'}</td>
                   <td>{(plan.available_model_ids || []).join(', ')}</td>
@@ -1798,6 +1957,401 @@ const AiChatConfig = () => {
                         value={imageSettingForm.retention_days}
                         onChange={(e) =>
                           setImageSettingForm({
+                            retention_days: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Button type="submit" className="mb-3">
+                      保存设置
+                    </Button>
+                  </Col>
+                </Row>
+              </Form>
+            </Card.Body>
+          </Card>
+        </Tab>
+
+        <Tab eventKey="videos" title="视频生成">
+          <Card className="mb-4">
+            <Card.Body>
+              <Form onSubmit={submitVideoProvider}>
+                <Row>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Provider 名称</Form.Label>
+                      <Form.Control
+                        required
+                        value={videoProviderForm.name}
+                        onChange={(e) =>
+                          setVideoProviderForm({
+                            ...videoProviderForm,
+                            name: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Base URL</Form.Label>
+                      <Form.Control
+                        required
+                        value={videoProviderForm.base_url}
+                        onChange={(e) =>
+                          setVideoProviderForm({
+                            ...videoProviderForm,
+                            base_url: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>API Key</Form.Label>
+                      <Form.Control
+                        type="password"
+                        required={!videoProviderForm.id}
+                        placeholder={
+                          videoProviderForm.id ? '留空则保持原 API Key' : ''
+                        }
+                        value={videoProviderForm.api_key}
+                        onChange={(e) =>
+                          setVideoProviderForm({
+                            ...videoProviderForm,
+                            api_key: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>备注</Form.Label>
+                      <Form.Control
+                        value={videoProviderForm.remark}
+                        onChange={(e) =>
+                          setVideoProviderForm({
+                            ...videoProviderForm,
+                            remark: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Form.Check
+                  className="mb-3"
+                  type="switch"
+                  label="启用"
+                  checked={videoProviderForm.enabled}
+                  onChange={(e) =>
+                    setVideoProviderForm({
+                      ...videoProviderForm,
+                      enabled: e.target.checked,
+                    })
+                  }
+                />
+                <Button type="submit">保存视频 Provider</Button>
+              </Form>
+            </Card.Body>
+          </Card>
+
+          <Table responsive hover className="mb-4">
+            <thead>
+              <tr>
+                <th>Provider</th>
+                <th>Base URL</th>
+                <th>状态</th>
+                <th>备注</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {videoProviders.map((provider) => (
+                <tr key={provider.id}>
+                  <td>{provider.name}</td>
+                  <td className="ai-chat-config-text-cell">
+                    {provider.base_url}
+                  </td>
+                  <td>{provider.enabled ? '启用' : '禁用'}</td>
+                  <td>{provider.remark}</td>
+                  <td className="ai-chat-config-action-cell">
+                    <Button
+                      size="sm"
+                      variant="outline-primary"
+                      onClick={() => setVideoProviderForm(provider)}>
+                      编辑
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline-danger"
+                      onClick={async () => {
+                        await deleteAdminAiVideoProvider(provider.id);
+                        await loadAll();
+                      }}>
+                      删除
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+
+          <Card className="mb-4">
+            <Card.Body>
+              <Form onSubmit={submitVideoModel}>
+                <Row>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Provider</Form.Label>
+                      <Form.Select
+                        required
+                        value={videoModelForm.provider_id}
+                        onChange={(e) =>
+                          setVideoModelForm({
+                            ...videoModelForm,
+                            provider_id: Number(e.target.value),
+                          })
+                        }>
+                        <option value={0}>请选择</option>
+                        {videoProviders.map((provider) => (
+                          <option key={provider.id} value={provider.id}>
+                            {provider.name}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>本站模型 ID</Form.Label>
+                      <Form.Control
+                        required
+                        value={videoModelForm.site_model_id}
+                        onChange={(e) =>
+                          setVideoModelForm({
+                            ...videoModelForm,
+                            site_model_id: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>供应商模型 ID</Form.Label>
+                      <Form.Control
+                        required
+                        value={videoModelForm.provider_model_id}
+                        onChange={(e) =>
+                          setVideoModelForm({
+                            ...videoModelForm,
+                            provider_model_id: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>默认尺寸</Form.Label>
+                      <Form.Select
+                        value={videoModelForm.default_size}
+                        onChange={(e) =>
+                          setVideoModelForm({
+                            ...videoModelForm,
+                            default_size: e.target.value,
+                          })
+                        }>
+                        <option value="1280x720">16:9 1280x720</option>
+                        <option value="720x1280">9:16 720x1280</option>
+                        <option value="1024x1024">1:1 1024x1024</option>
+                        <option value="1792x1024">16:9 1792x1024</option>
+                        <option value="1024x1792">9:16 1024x1792</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>默认时长</Form.Label>
+                      <Form.Select
+                        value={videoModelForm.default_seconds}
+                        onChange={(e) =>
+                          setVideoModelForm({
+                            ...videoModelForm,
+                            default_seconds: Number(e.target.value),
+                          })
+                        }>
+                        {[6, 10, 12, 16, 20].map((seconds) => (
+                          <option key={seconds} value={seconds}>
+                            {seconds} 秒
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>默认质量</Form.Label>
+                      <Form.Select
+                        value={videoModelForm.default_resolution}
+                        onChange={(e) =>
+                          setVideoModelForm({
+                            ...videoModelForm,
+                            default_resolution: e.target.value,
+                          })
+                        }>
+                        <option value="720p">720p</option>
+                        <option value="480p">480p</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>默认模式</Form.Label>
+                      <Form.Select
+                        value={videoModelForm.default_preset}
+                        onChange={(e) =>
+                          setVideoModelForm({
+                            ...videoModelForm,
+                            default_preset: e.target.value,
+                          })
+                        }>
+                        <option value="custom">custom</option>
+                        <option value="normal">normal</option>
+                        <option value="fun">fun</option>
+                        <option value="spicy">spicy</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>排序</Form.Label>
+                      <Form.Control
+                        type="number"
+                        value={videoModelForm.sort_order}
+                        onChange={(e) =>
+                          setVideoModelForm({
+                            ...videoModelForm,
+                            sort_order: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col md={4}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>展示名称</Form.Label>
+                      <Form.Control
+                        value={videoModelForm.display_name}
+                        onChange={(e) =>
+                          setVideoModelForm({
+                            ...videoModelForm,
+                            display_name: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={8}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>描述</Form.Label>
+                      <Form.Control
+                        value={videoModelForm.description}
+                        onChange={(e) =>
+                          setVideoModelForm({
+                            ...videoModelForm,
+                            description: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Form.Check
+                  className="mb-3"
+                  type="switch"
+                  label="启用"
+                  checked={videoModelForm.enabled}
+                  onChange={(e) =>
+                    setVideoModelForm({
+                      ...videoModelForm,
+                      enabled: e.target.checked,
+                    })
+                  }
+                />
+                <Button type="submit">保存视频模型</Button>
+              </Form>
+            </Card.Body>
+          </Card>
+
+          <Table responsive hover className="mb-4">
+            <thead>
+              <tr>
+                <th>本站模型 ID</th>
+                <th>Provider</th>
+                <th>供应商模型</th>
+                <th>默认参数</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {videoModels.map((model) => (
+                <tr key={model.id}>
+                  <td>{model.site_model_id}</td>
+                  <td>{model.provider_name}</td>
+                  <td>{model.provider_model_id}</td>
+                  <td>
+                    {model.default_size} · {model.default_seconds} 秒 ·{' '}
+                    {model.default_resolution}
+                  </td>
+                  <td>{model.enabled ? '启用' : '禁用'}</td>
+                  <td className="ai-chat-config-action-cell">
+                    <Button
+                      size="sm"
+                      variant="outline-primary"
+                      onClick={() => setVideoModelForm(model)}>
+                      编辑
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline-danger"
+                      onClick={async () => {
+                        await deleteAdminAiVideoModel(model.id);
+                        await loadAll();
+                      }}>
+                      删除
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+
+          <Card>
+            <Card.Body>
+              <Form onSubmit={submitVideoSetting}>
+                <Row className="align-items-end">
+                  <Col md={4}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>视频保存天数</Form.Label>
+                      <Form.Control
+                        required
+                        min={1}
+                        max={3650}
+                        type="number"
+                        value={videoSettingForm.retention_days}
+                        onChange={(e) =>
+                          setVideoSettingForm({
                             retention_days: Number(e.target.value),
                           })
                         }

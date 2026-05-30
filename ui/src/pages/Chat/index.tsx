@@ -59,20 +59,29 @@ import type {
 } from '@/common/interface';
 
 import ImageGenerationWorkspace from './ImageGenerationWorkspace';
+import VideoGenerationWorkspace from './VideoGenerationWorkspace';
 import './index.scss';
 
 const navItems = [
-  { icon: 'pencil-square', label: '新对话', action: 'new' },
+  { icon: 'pencil-square', label: '聊天', action: 'new' },
   { icon: 'image', label: '图片生成', action: 'image' },
+  { icon: 'camera-reels', label: '视频生成', action: 'video' },
   { icon: 'credit-card-2-front', label: '订阅管理', action: 'subscription' },
   { icon: 'stars', label: '订阅兑换', action: 'redeem' },
 ];
 
+type ChatWorkspace = 'chat' | 'image' | 'video';
+
 const getStoredWorkspace = () =>
-  Storage.get(CHAT_WORKSPACE_STORAGE_KEY) === 'image' ? 'image' : 'chat';
+  Storage.get(CHAT_WORKSPACE_STORAGE_KEY) === 'image' ||
+  Storage.get(CHAT_WORKSPACE_STORAGE_KEY) === 'video'
+    ? (Storage.get(CHAT_WORKSPACE_STORAGE_KEY) as ChatWorkspace)
+    : 'chat';
 
 const getWorkspaceFromSearchParams = (params: URLSearchParams) =>
-  params.get('workspace') === 'image' ? 'image' : undefined;
+  params.get('workspace') === 'image' || params.get('workspace') === 'video'
+    ? (params.get('workspace') as ChatWorkspace)
+    : undefined;
 
 const formatQuota = (value?: number) => {
   if (value === -1) {
@@ -205,7 +214,7 @@ const normalizeMessageContent = (text: string) =>
     .replace(/\r\n?/g, '\n')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n[ \t]+/g, '\n')
-    .replace(/\n{2,}/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 
 const ChatMessageContent: FC<{ content: string; markdown: boolean }> = memo(
@@ -280,11 +289,12 @@ const Chat: FC = () => {
   const brandingInfo = brandingStore((state) => state.branding);
   const loggedUser = loggedUserInfoStore((state) => state.user);
   const [conversationsOpen, setConversationsOpen] = useState(true);
-  const [activeWorkspace, setActiveWorkspace] = useState<'chat' | 'image'>(
+  const [activeWorkspace, setActiveWorkspace] = useState<ChatWorkspace>(
     () => getWorkspaceFromSearchParams(searchParams) || getStoredWorkspace(),
   );
   const [mobileConversationsOpen, setMobileConversationsOpen] = useState(false);
   const [mobileImageTasksOpen, setMobileImageTasksOpen] = useState(false);
+  const [mobileVideoTasksOpen, setMobileVideoTasksOpen] = useState(false);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const [subscriptionError, setSubscriptionError] = useState('');
@@ -299,6 +309,7 @@ const Chat: FC = () => {
   const [modelsLoading, setModelsLoading] = useState(false);
   const [selectedModelID, setSelectedModelID] = useState('');
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [reasoningMenuModelID, setReasoningMenuModelID] = useState('');
   const [conversationList, setConversationList] = useState<
     ConversationListItem[]
   >([]);
@@ -347,12 +358,12 @@ const Chat: FC = () => {
     brandingInfo.logo;
 
   const switchWorkspace = useCallback(
-    (workspace: 'chat' | 'image') => {
+    (workspace: ChatWorkspace) => {
       setActiveWorkspace(workspace);
       const nextSearchParams = new URLSearchParams(window.location.search);
-      if (workspace === 'image') {
-        Storage.set(CHAT_WORKSPACE_STORAGE_KEY, 'image');
-        nextSearchParams.set('workspace', 'image');
+      if (workspace === 'image' || workspace === 'video') {
+        Storage.set(CHAT_WORKSPACE_STORAGE_KEY, workspace);
+        nextSearchParams.set('workspace', workspace);
       } else {
         Storage.remove(CHAT_WORKSPACE_STORAGE_KEY);
         nextSearchParams.delete('workspace');
@@ -551,11 +562,11 @@ const Chat: FC = () => {
     }
 
     const storedWorkspace = getStoredWorkspace();
-    if (storedWorkspace === 'image') {
+    if (storedWorkspace === 'image' || storedWorkspace === 'video') {
       const nextSearchParams = new URLSearchParams(searchParams);
-      nextSearchParams.set('workspace', 'image');
+      nextSearchParams.set('workspace', storedWorkspace);
       setSearchParams(nextSearchParams, { replace: true });
-      setActiveWorkspace('image');
+      setActiveWorkspace(storedWorkspace);
       return;
     }
 
@@ -567,7 +578,8 @@ const Chat: FC = () => {
       !modelMenuOpen &&
       !attachmentMenuOpen &&
       !mobileConversationsOpen &&
-      !mobileImageTasksOpen
+      !mobileImageTasksOpen &&
+      !mobileVideoTasksOpen
     ) {
       return undefined;
     }
@@ -583,14 +595,21 @@ const Chat: FC = () => {
         !modelMenuRef.current.contains(evt.target as Node)
       ) {
         setModelMenuOpen(false);
+        setReasoningMenuModelID('');
       }
       if (
         mobileConversationMenuRef.current &&
         !mobileConversationMenuRef.current.contains(evt.target as Node)
       ) {
         setMobileConversationsOpen(false);
-        if (mobileImageTasksOpen) {
+        if (mobileImageTasksOpen || mobileVideoTasksOpen) {
           setMobileImageTasksOpen(false);
+          setMobileVideoTasksOpen(false);
+          window.dispatchEvent(
+            new CustomEvent('hcai-toggle-video-tasks', {
+              detail: { open: false },
+            }),
+          );
           window.dispatchEvent(
             new CustomEvent('hcai-toggle-image-tasks', {
               detail: { open: false },
@@ -607,6 +626,7 @@ const Chat: FC = () => {
     attachmentMenuOpen,
     mobileConversationsOpen,
     mobileImageTasksOpen,
+    mobileVideoTasksOpen,
     modelMenuOpen,
   ]);
 
@@ -680,20 +700,32 @@ const Chat: FC = () => {
       const open = (evt as CustomEvent<{ open?: boolean }>).detail?.open;
       setMobileImageTasksOpen(Boolean(open));
     };
+    const handleVideoTasksOpenChange = (evt: Event) => {
+      const open = (evt as CustomEvent<{ open?: boolean }>).detail?.open;
+      setMobileVideoTasksOpen(Boolean(open));
+    };
     window.addEventListener(
       'hcai-image-tasks-open-change',
       handleImageTasksOpenChange,
+    );
+    window.addEventListener(
+      'hcai-video-tasks-open-change',
+      handleVideoTasksOpenChange,
     );
     return () => {
       window.removeEventListener(
         'hcai-image-tasks-open-change',
         handleImageTasksOpenChange,
       );
+      window.removeEventListener(
+        'hcai-video-tasks-open-change',
+        handleVideoTasksOpenChange,
+      );
     };
   }, []);
 
   useEffect(() => {
-    if (activeWorkspace !== 'image') {
+    if (activeWorkspace !== 'image' && activeWorkspace !== 'video') {
       setMobileImageTasksOpen(false);
     }
   }, [activeWorkspace]);
@@ -710,6 +742,10 @@ const Chat: FC = () => {
     };
     const handleOpenImageGeneration = () => {
       switchWorkspace('image');
+      setMobileConversationsOpen(false);
+    };
+    const handleOpenVideoGeneration = () => {
+      switchWorkspace('video');
       setMobileConversationsOpen(false);
     };
     const handleLoadConversationFromNav = (evt: Event) => {
@@ -730,6 +766,10 @@ const Chat: FC = () => {
       handleOpenImageGeneration,
     );
     window.addEventListener(
+      'hcai-open-video-generation',
+      handleOpenVideoGeneration,
+    );
+    window.addEventListener(
       'hcai-load-conversation',
       handleLoadConversationFromNav,
     );
@@ -748,6 +788,10 @@ const Chat: FC = () => {
         handleOpenImageGeneration,
       );
       window.removeEventListener(
+        'hcai-open-video-generation',
+        handleOpenVideoGeneration,
+      );
+      window.removeEventListener(
         'hcai-load-conversation',
         handleLoadConversationFromNav,
       );
@@ -760,6 +804,10 @@ const Chat: FC = () => {
     }
     if (action === 'image') {
       switchWorkspace('image');
+      setMobileConversationsOpen(false);
+    }
+    if (action === 'video') {
+      switchWorkspace('video');
       setMobileConversationsOpen(false);
     }
     if (action === 'subscription') {
@@ -1329,6 +1377,7 @@ const Chat: FC = () => {
       );
       setRedeemCode('');
       await refreshSubscription();
+      window.dispatchEvent(new CustomEvent('hcai-subscription-updated'));
       await refreshModels();
     } catch (err: any) {
       setRedeemError(err?.msg || '兑换失败');
@@ -1505,7 +1554,8 @@ const Chat: FC = () => {
                 (item.action === 'new' &&
                   activeWorkspace === 'chat' &&
                   !conversationID) ||
-                (item.action === 'image' && activeWorkspace === 'image')
+                (item.action === 'image' && activeWorkspace === 'image') ||
+                (item.action === 'video' && activeWorkspace === 'video')
                   ? 'active'
                   : ''
               }
@@ -1517,43 +1567,56 @@ const Chat: FC = () => {
           ))}
         </nav>
 
-        <div className="hcai-chat-sidebar-section">
-          <button
-            type="button"
-            className="hcai-chat-sidebar-toggle"
-            aria-expanded={conversationsOpen}
-            aria-controls="hcai-chat-conversations"
-            onClick={() => setConversationsOpen((open) => !open)}>
-            <Icon name={conversationsOpen ? 'chevron-down' : 'chevron-right'} />
-            <span>对话</span>
-          </button>
-          {conversationsOpen ? (
-            <div
-              id="hcai-chat-conversations"
-              className="hcai-conversation-list">
-              <span className="hcai-chat-time">最近对话</span>
-              {conversationList.length > 0 ? (
-                conversationList.map((item) => (
-                  <button
-                    type="button"
-                    className={
-                      item.conversation_id === conversationID
-                        ? 'hcai-conversation-item active'
-                        : 'hcai-conversation-item'
-                    }
-                    key={item.conversation_id}
-                    onClick={() =>
-                      handleLoadConversation(item.conversation_id)
-                    }>
-                    {item.topic}
-                  </button>
-                ))
-              ) : (
-                <span className="hcai-chat-empty">暂无对话</span>
-              )}
-            </div>
-          ) : null}
-        </div>
+        {activeWorkspace === 'chat' ? (
+          <div className="hcai-chat-sidebar-section">
+            <button
+              type="button"
+              className="hcai-chat-sidebar-toggle"
+              aria-expanded={conversationsOpen}
+              aria-controls="hcai-chat-conversations"
+              onClick={() => setConversationsOpen((open) => !open)}>
+              <Icon
+                name={conversationsOpen ? 'chevron-down' : 'chevron-right'}
+              />
+              <span>对话</span>
+            </button>
+            {conversationsOpen ? (
+              <div
+                id="hcai-chat-conversations"
+                className="hcai-conversation-list">
+                <span className="hcai-chat-time">最近对话</span>
+                {conversationList.length > 0 ? (
+                  conversationList.map((item) => (
+                    <button
+                      type="button"
+                      className={
+                        item.conversation_id === conversationID
+                          ? 'hcai-conversation-item active'
+                          : 'hcai-conversation-item'
+                      }
+                      key={item.conversation_id}
+                      onClick={() =>
+                        handleLoadConversation(item.conversation_id)
+                      }>
+                      {item.topic}
+                    </button>
+                  ))
+                ) : (
+                  <span className="hcai-chat-empty">暂无对话</span>
+                )}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div
+            id={
+              activeWorkspace === 'image'
+                ? 'hcai-sidebar-image-tasks'
+                : 'hcai-sidebar-video-tasks'
+            }
+            className="hcai-chat-sidebar-section hcai-chat-sidebar-task-section"
+          />
+        )}
       </aside>
 
       <main className="hcai-chat-main">
@@ -1567,12 +1630,16 @@ const Chat: FC = () => {
               aria-expanded={
                 activeWorkspace === 'image'
                   ? mobileImageTasksOpen
-                  : mobileConversationsOpen
+                  : activeWorkspace === 'video'
+                    ? mobileVideoTasksOpen
+                    : mobileConversationsOpen
               }
               aria-controls={
                 activeWorkspace === 'image'
                   ? 'hcai-mobile-image-tasks'
-                  : 'hcai-mobile-conversations'
+                  : activeWorkspace === 'video'
+                    ? 'hcai-mobile-video-tasks'
+                    : 'hcai-mobile-conversations'
               }
               onClick={() => {
                 if (activeWorkspace === 'image') {
@@ -1585,10 +1652,24 @@ const Chat: FC = () => {
                   );
                   return;
                 }
+                if (activeWorkspace === 'video') {
+                  const nextOpen = !mobileVideoTasksOpen;
+                  setMobileVideoTasksOpen(nextOpen);
+                  window.dispatchEvent(
+                    new CustomEvent('hcai-toggle-video-tasks', {
+                      detail: { open: nextOpen },
+                    }),
+                  );
+                  return;
+                }
                 setMobileConversationsOpen((open) => !open);
               }}>
               <Icon name="layout-sidebar" />
-              <span>{activeWorkspace === 'image' ? '任务队列' : '对话'}</span>
+              <span>
+                {activeWorkspace === 'image' || activeWorkspace === 'video'
+                  ? '任务队列'
+                  : '对话'}
+              </span>
             </button>
             {mobileConversationsOpen && activeWorkspace === 'chat' ? (
               <div
@@ -1599,7 +1680,7 @@ const Chat: FC = () => {
                   className={!conversationID ? 'active' : ''}
                   onClick={startNewConversation}>
                   <Icon name="pencil-square" />
-                  <span>新对话</span>
+                  <span>聊天</span>
                 </button>
                 <span className="hcai-chat-time">最近对话</span>
                 {conversationList.length > 0 ? (
@@ -1628,6 +1709,12 @@ const Chat: FC = () => {
 
         {activeWorkspace === 'image' ? (
           <ImageGenerationWorkspace
+            subscription={subscription}
+            onRefreshSubscription={refreshSubscription}
+            onOpenSubscription={openSubscription}
+          />
+        ) : activeWorkspace === 'video' ? (
+          <VideoGenerationWorkspace
             subscription={subscription}
             onRefreshSubscription={refreshSubscription}
             onOpenSubscription={openSubscription}
@@ -1806,7 +1893,14 @@ const Chat: FC = () => {
                     type="button"
                     className="hcai-model-select"
                     disabled={modelsLoading || models.length === 0}
-                    onClick={() => setModelMenuOpen((open) => !open)}>
+                    onClick={() => {
+                      setModelMenuOpen((open) => {
+                        if (open) {
+                          setReasoningMenuModelID('');
+                        }
+                        return !open;
+                      });
+                    }}>
                     <span>
                       {modelsLoading
                         ? '加载模型...'
@@ -1826,6 +1920,8 @@ const Chat: FC = () => {
                           supportsReasoningModel(model);
                         const modelReasoningEffort =
                           modelReasoningEfforts[model.site_model_id] || '';
+                        const reasoningMenuShown =
+                          reasoningMenuModelID === model.site_model_id;
                         return (
                           <div
                             className={
@@ -1839,39 +1935,61 @@ const Chat: FC = () => {
                               className="hcai-model-option-main"
                               onClick={() => {
                                 setSelectedModelID(model.site_model_id);
+                                setReasoningMenuModelID('');
                               }}>
                               <strong>{getModelName(model)}</strong>
-                              <span>
-                                {model.consume_rate} 点/次
-                                {modelSupportsReasoning
-                                  ? ` · 思考 ${getReasoningEffortLabel(
-                                      modelReasoningEffort,
-                                    )}`
-                                  : ''}
-                              </span>
+                              <span>{model.consume_rate} 点/次</span>
                             </button>
                             {modelSupportsReasoning ? (
-                              <div
-                                className="hcai-model-reasoning"
-                                aria-label={`${getModelName(model)} 思考长度`}>
-                                {reasoningEffortOptions.map((option) => (
-                                  <button
-                                    type="button"
-                                    className={
-                                      modelReasoningEffort === option.value
-                                        ? 'active'
-                                        : ''
-                                    }
-                                    key={option.value || 'auto'}
-                                    onClick={() => {
-                                      setModelReasoningEfforts((prev) => ({
-                                        ...prev,
-                                        [model.site_model_id]: option.value,
-                                      }));
-                                    }}>
-                                    {option.label}
-                                  </button>
-                                ))}
+                              <div className="hcai-model-reasoning-menu">
+                                <button
+                                  type="button"
+                                  className={
+                                    reasoningMenuShown
+                                      ? 'hcai-model-reasoning-toggle active'
+                                      : 'hcai-model-reasoning-toggle'
+                                  }
+                                  aria-haspopup="true"
+                                  aria-expanded={reasoningMenuShown}
+                                  aria-label={`${getModelName(model)} 思考长度`}
+                                  onClick={() => {
+                                    setReasoningMenuModelID((current) =>
+                                      current === model.site_model_id
+                                        ? ''
+                                        : model.site_model_id,
+                                    );
+                                  }}>
+                                  <span>
+                                    思考{' '}
+                                    {getReasoningEffortLabel(
+                                      modelReasoningEffort,
+                                    )}
+                                  </span>
+                                  <Icon name="chevron-down" />
+                                </button>
+                                {reasoningMenuShown ? (
+                                  <div className="hcai-model-reasoning-popover">
+                                    {reasoningEffortOptions.map((option) => (
+                                      <button
+                                        type="button"
+                                        className={
+                                          modelReasoningEffort === option.value
+                                            ? 'active'
+                                            : ''
+                                        }
+                                        key={option.value || 'auto'}
+                                        onClick={() => {
+                                          setModelReasoningEfforts((prev) => ({
+                                            ...prev,
+                                            [model.site_model_id]: option.value,
+                                          }));
+                                          setReasoningMenuModelID('');
+                                        }}>
+                                        {option.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : null}
                               </div>
                             ) : null}
                           </div>
@@ -1933,14 +2051,6 @@ const Chat: FC = () => {
                   <strong>{subscription.plan_name}</strong>
                 </div>
                 <div>
-                  <span>聊天点数</span>
-                  <strong>{formatQuota(subscription.chat_points)}</strong>
-                </div>
-                <div>
-                  <span>生图额度</span>
-                  <strong>{formatQuota(subscription.image_quota)}</strong>
-                </div>
-                <div>
                   <span>订阅到期时间</span>
                   <strong>
                     {formatSubscriptionDateTime(subscription.expires_at)}
@@ -1985,6 +2095,44 @@ const Chat: FC = () => {
                         width: `${getProgressWidth(
                           subscription.image_quota_used,
                           subscription.image_quota,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="hcai-subscription-usage-row">
+                  <div>
+                    <span>今日视频</span>
+                    <strong>
+                      已生成 {formatQuota(subscription.video_daily_used)} 次 /{' '}
+                      {formatQuota(subscription.video_daily_quota)}
+                    </strong>
+                  </div>
+                  <div className="hcai-subscription-progress">
+                    <span
+                      style={{
+                        width: `${getProgressWidth(
+                          subscription.video_daily_used,
+                          subscription.video_daily_quota,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="hcai-subscription-usage-row">
+                  <div>
+                    <span>本月视频</span>
+                    <strong>
+                      已生成 {formatQuota(subscription.video_quota_used)} 次 /{' '}
+                      {formatQuota(subscription.video_quota)}
+                    </strong>
+                  </div>
+                  <div className="hcai-subscription-progress">
+                    <span
+                      style={{
+                        width: `${getProgressWidth(
+                          subscription.video_quota_used,
+                          subscription.video_quota,
                         )}%`,
                       }}
                     />

@@ -295,6 +295,92 @@ func (ctrl *AIChatConfigController) SaveImageSetting(ctx *gin.Context) {
 	handler.HandleResponse(ctx, err, resp)
 }
 
+func (ctrl *AIChatConfigController) ListVideoProviders(ctx *gin.Context) {
+	resp, err := ctrl.aiChatConfigService.ListVideoProviders(ctx)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) CreateVideoProvider(ctx *gin.Context) {
+	req := &schema.AIVideoProviderReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	resp, err := ctrl.aiChatConfigService.CreateVideoProvider(ctx, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) UpdateVideoProvider(ctx *gin.Context) {
+	id, ok := pathID(ctx)
+	if !ok {
+		return
+	}
+	req := &schema.AIVideoProviderReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	resp, err := ctrl.aiChatConfigService.UpdateVideoProvider(ctx, id, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) DeleteVideoProvider(ctx *gin.Context) {
+	id, ok := pathID(ctx)
+	if !ok {
+		return
+	}
+	err := ctrl.aiChatConfigService.DeleteVideoProvider(ctx, id)
+	handler.HandleResponse(ctx, err, nil)
+}
+
+func (ctrl *AIChatConfigController) ListVideoModels(ctx *gin.Context) {
+	resp, err := ctrl.aiChatConfigService.ListVideoModels(ctx, false)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) CreateVideoModel(ctx *gin.Context) {
+	req := &schema.AIVideoModelReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	resp, err := ctrl.aiChatConfigService.SaveVideoModel(ctx, 0, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) UpdateVideoModel(ctx *gin.Context) {
+	id, ok := pathID(ctx)
+	if !ok {
+		return
+	}
+	req := &schema.AIVideoModelReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	resp, err := ctrl.aiChatConfigService.SaveVideoModel(ctx, id, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) DeleteVideoModel(ctx *gin.Context) {
+	id, ok := pathID(ctx)
+	if !ok {
+		return
+	}
+	err := ctrl.aiChatConfigService.DeleteVideoModel(ctx, id)
+	handler.HandleResponse(ctx, err, nil)
+}
+
+func (ctrl *AIChatConfigController) GetVideoSetting(ctx *gin.Context) {
+	resp, err := ctrl.aiChatConfigService.GetVideoSetting(ctx)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (ctrl *AIChatConfigController) SaveVideoSetting(ctx *gin.Context) {
+	req := &schema.AIVideoSettingReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	resp, err := ctrl.aiChatConfigService.SaveVideoSetting(ctx, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
 func pathID(ctx *gin.Context) (int, bool) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {

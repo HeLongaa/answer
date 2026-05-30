@@ -72,25 +72,18 @@
   padding: var(--question-list-row-y) 0.5rem !important;
   background: transparent;
 
+  &::before {
+    display: none;
+  }
+
   &:hover {
-    background-color: rgba(var(--bs-primary-rgb), 0.035);
+    background-color: transparent;
   }
 }
 
 .question-list-row-featured.list-group-item {
   border-left: 3px solid rgba(245, 158, 11, 0.72) !important;
-  background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.9),
-      rgba(255, 248, 232, 0.72)
-    ),
-    linear-gradient(
-      90deg,
-      rgba(245, 158, 11, 0.22),
-      rgba(245, 158, 11, 0.09) 48%,
-      rgba(255, 255, 255, 0.22)
-    ),
-    rgba(255, 250, 235, 0.82);
+  background: rgba(255, 250, 235, 0.82);
   border-color: rgba(245, 158, 11, 0.3) !important;
   box-shadow:
     0 12px 34px rgba(146, 91, 0, 0.12),
@@ -108,18 +101,7 @@
   }
 
   &:hover {
-    background: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.94),
-        rgba(255, 246, 225, 0.78)
-      ),
-      linear-gradient(
-        90deg,
-        rgba(245, 158, 11, 0.28),
-        rgba(245, 158, 11, 0.12) 48%,
-        rgba(var(--bs-primary-rgb), 0.04)
-      ),
-      rgba(255, 250, 235, 0.88);
+    background: rgba(255, 250, 235, 0.82);
     border-color: rgba(245, 158, 11, 0.42) !important;
     box-shadow:
       0 13px 36px rgba(146, 91, 0, 0.16),
@@ -128,13 +110,7 @@
 }
 
 .question-list-row-featured {
-  background: linear-gradient(
-    90deg,
-    rgba(245, 158, 11, 0.11),
-    rgba(245, 158, 11, 0.035) 42%,
-    transparent
-  );
-
+  background: rgba(245, 158, 11, 0.055);
 }
 
 .question-list-grid {
@@ -246,23 +222,12 @@
 
 [data-bs-theme='dark'] {
   .question-list-row:hover {
-    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    background-color: transparent;
   }
 
   .question-list-row-featured.list-group-item {
     border-left-color: rgba(245, 158, 11, 0.82) !important;
-    background: linear-gradient(
-        180deg,
-        rgba(45, 36, 22, 0.88),
-        rgba(32, 29, 23, 0.74)
-      ),
-      linear-gradient(
-        90deg,
-        rgba(245, 158, 11, 0.24),
-        rgba(245, 158, 11, 0.1) 48%,
-        rgba(255, 255, 255, 0.02)
-      ),
-      rgba(38, 31, 21, 0.82);
+    background: rgba(38, 31, 21, 0.82);
     border-color: rgba(245, 158, 11, 0.36) !important;
     box-shadow:
       0 14px 38px rgba(0, 0, 0, 0.34),
@@ -270,29 +235,13 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.12);
 
     &:hover {
-      background: linear-gradient(
-          180deg,
-          rgba(52, 40, 22, 0.92),
-          rgba(37, 32, 24, 0.78)
-        ),
-        linear-gradient(
-          90deg,
-          rgba(245, 158, 11, 0.3),
-          rgba(245, 158, 11, 0.13) 48%,
-          rgba(var(--bs-primary-rgb), 0.08)
-        ),
-        rgba(44, 35, 22, 0.88);
+      background: rgba(38, 31, 21, 0.82);
       border-color: rgba(245, 158, 11, 0.48) !important;
     }
   }
 
   .question-list-row-featured {
-    background: linear-gradient(
-      90deg,
-      rgba(245, 158, 11, 0.18),
-      rgba(245, 158, 11, 0.07) 42%,
-      transparent
-    );
+    background: rgba(245, 158, 11, 0.09);
   }
 
   .question-featured-badge {

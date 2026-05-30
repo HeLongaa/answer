@@ -78,6 +78,8 @@ const PlanCard = ({
       <div className="hcai-plan-quota">
         <span>{formatQuota(plan.chat_points)} 点/月</span>
         <span>{formatQuota(plan.image_quota)} 张生图/月</span>
+        <span>{formatQuota(plan.video_daily_quota)} 次视频/日</span>
+        <span>{formatQuota(plan.video_quota)} 次视频/月</span>
       </div>
 
       <button
@@ -99,6 +101,8 @@ const PlanCard = ({
       <ul>
         <li>每月 {formatQuota(plan.chat_points)} 聊天点数</li>
         <li>每月 {formatQuota(plan.image_quota)} 张图片生成</li>
+        <li>每日 {formatQuota(plan.video_daily_quota)} 次视频生成</li>
+        <li>每月 {formatQuota(plan.video_quota)} 次视频生成</li>
         <li>可用模型：{topModels}</li>
         <li>订阅费用： ¥{formatPrice(plan.monthly_price)}/月</li>
         <li>按模型消耗系数灵活扣减额度</li>
@@ -150,7 +154,7 @@ const Subscription: FC = () => {
       <header className="hcai-subscription-page-head">
         <div>
           <h1>订阅购买</h1>
-          <p>按开通时间计算一个月周期，聊天点数和生图额度独立计算。</p>
+          <p>按开通时间计算一个月周期，聊天点数、生图和视频额度独立计算。</p>
         </div>
         <span>购买进行订阅兑换即可生效</span>
       </header>

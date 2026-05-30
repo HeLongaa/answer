@@ -232,6 +232,64 @@ func (c *AIController) GetImageAsset(ctx *gin.Context) {
 	ctx.File(filePath)
 }
 
+func (c *AIController) GetAIVideoModels(ctx *gin.Context) {
+	if c.aiChatConfigService == nil {
+		handler.HandleResponse(ctx, errors.BadRequest("ai chat config is not available"), nil)
+		return
+	}
+	resp, err := c.aiChatConfigService.ListVideoModels(ctx, true)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (c *AIController) GenerateVideo(ctx *gin.Context) {
+	if c.aiChatConfigService == nil {
+		handler.HandleResponse(ctx, errors.BadRequest("ai chat config is not available"), nil)
+		return
+	}
+	req := &schema.AIVideoGenerateReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	userID := middleware.GetLoginUserIDFromContext(ctx)
+	resp, err := c.aiChatConfigService.GenerateVideo(ctx, userID, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (c *AIController) GetVideoGenerations(ctx *gin.Context) {
+	if c.aiChatConfigService == nil {
+		handler.HandleResponse(ctx, errors.BadRequest("ai chat config is not available"), nil)
+		return
+	}
+	limit := 30
+	if raw := ctx.Query("limit"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil {
+			limit = parsed
+		}
+	}
+	userID := middleware.GetLoginUserIDFromContext(ctx)
+	resp, err := c.aiChatConfigService.ListUserVideoGenerations(ctx, userID, limit)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+func (c *AIController) GetVideoAsset(ctx *gin.Context) {
+	if c.aiChatConfigService == nil {
+		handler.HandleResponse(ctx, errors.BadRequest("ai chat config is not available"), nil)
+		return
+	}
+	userID := middleware.GetLoginUserIDFromContext(ctx)
+	filePath, err := c.aiChatConfigService.GetUserVideoFilePath(
+		ctx,
+		userID,
+		ctx.Param("user_id"),
+		ctx.Param("filename"),
+	)
+	if err != nil {
+		handler.HandleResponse(ctx, err, nil)
+		return
+	}
+	ctx.File(filePath)
+}
+
 type ChatCompletionsRequest struct {
 	Messages              []Message `validate:"required,gte=1" json:"messages"`
 	Model                 string    `json:"model"`

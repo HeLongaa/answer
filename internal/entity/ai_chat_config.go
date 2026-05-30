@@ -85,6 +85,8 @@ type AISubscriptionPlan struct {
 	MonthlyPrice    float64   `xorm:"not null default 0 DOUBLE monthly_price"`
 	ChatPoints      int       `xorm:"not null default 0 INT(11) chat_points"`
 	ImageQuota      int       `xorm:"not null default 0 INT(11) image_quota"`
+	VideoDailyQuota int       `xorm:"not null default 0 INT(11) video_daily_quota"`
+	VideoQuota      int       `xorm:"not null default 0 INT(11) video_quota"`
 	PurchaseURL     string    `xorm:"not null default '' VARCHAR(500) purchase_url"`
 	TaskDescription string    `xorm:"not null TEXT task_description"`
 	SortOrder       int       `xorm:"not null default 0 INT(11) sort_order"`
@@ -178,7 +180,7 @@ func (AIImageModel) TableName() string { return "ai_image_models" }
 
 type AIImageSetting struct {
 	ID            int       `xorm:"not null pk INT(11) id"`
-	RetentionDays int      `xorm:"not null default 30 INT(11) retention_days"`
+	RetentionDays int       `xorm:"not null default 30 INT(11) retention_days"`
 	CreatedAt     time.Time `xorm:"created not null default CURRENT_TIMESTAMP TIMESTAMP created_at"`
 	UpdatedAt     time.Time `xorm:"updated not null default CURRENT_TIMESTAMP TIMESTAMP updated_at"`
 }
@@ -209,3 +211,71 @@ type AIImageGeneration struct {
 }
 
 func (AIImageGeneration) TableName() string { return "ai_image_generations" }
+
+type AIVideoProvider struct {
+	ID        int       `xorm:"not null pk autoincr INT(11) id"`
+	Name      string    `xorm:"not null default '' VARCHAR(255) name"`
+	BaseURL   string    `xorm:"not null default '' VARCHAR(500) base_url"`
+	APIKey    string    `xorm:"not null TEXT api_key"`
+	Enabled   bool      `xorm:"not null default true BOOL enabled"`
+	Remark    string    `xorm:"not null TEXT remark"`
+	CreatedAt time.Time `xorm:"created not null default CURRENT_TIMESTAMP TIMESTAMP created_at"`
+	UpdatedAt time.Time `xorm:"updated not null default CURRENT_TIMESTAMP TIMESTAMP updated_at"`
+}
+
+func (AIVideoProvider) TableName() string { return "ai_video_providers" }
+
+type AIVideoModel struct {
+	ID                int       `xorm:"not null pk autoincr INT(11) id"`
+	ProviderID        int       `xorm:"not null index INT(11) provider_id"`
+	SiteModelID       string    `xorm:"not null unique VARCHAR(100) site_model_id"`
+	ProviderModelID   string    `xorm:"not null default '' VARCHAR(255) provider_model_id"`
+	DisplayName       string    `xorm:"not null default '' VARCHAR(255) display_name"`
+	Description       string    `xorm:"not null TEXT description"`
+	DefaultSize       string    `xorm:"not null default '1280x720' VARCHAR(50) default_size"`
+	DefaultSeconds    int       `xorm:"not null default 6 INT(11) default_seconds"`
+	DefaultResolution string    `xorm:"not null default '720p' VARCHAR(50) default_resolution"`
+	DefaultPreset     string    `xorm:"not null default 'custom' VARCHAR(50) default_preset"`
+	Enabled           bool      `xorm:"not null default true BOOL enabled"`
+	SortOrder         int       `xorm:"not null default 0 INT(11) sort_order"`
+	CreatedAt         time.Time `xorm:"created not null default CURRENT_TIMESTAMP TIMESTAMP created_at"`
+	UpdatedAt         time.Time `xorm:"updated not null default CURRENT_TIMESTAMP TIMESTAMP updated_at"`
+}
+
+func (AIVideoModel) TableName() string { return "ai_video_models" }
+
+type AIVideoSetting struct {
+	ID            int       `xorm:"not null pk INT(11) id"`
+	RetentionDays int       `xorm:"not null default 30 INT(11) retention_days"`
+	CreatedAt     time.Time `xorm:"created not null default CURRENT_TIMESTAMP TIMESTAMP created_at"`
+	UpdatedAt     time.Time `xorm:"updated not null default CURRENT_TIMESTAMP TIMESTAMP updated_at"`
+}
+
+func (AIVideoSetting) TableName() string { return "ai_video_settings" }
+
+type AIVideoGeneration struct {
+	ID              int       `xorm:"not null pk autoincr INT(11) id"`
+	GenerationID    string    `xorm:"not null unique VARCHAR(100) generation_id"`
+	UpstreamID      string    `xorm:"not null default '' VARCHAR(100) upstream_id"`
+	UserID          string    `xorm:"not null index VARCHAR(100) user_id"`
+	SiteModelID     string    `xorm:"not null default '' VARCHAR(100) site_model_id"`
+	ProviderID      int       `xorm:"not null default 0 INT(11) provider_id"`
+	ProviderName    string    `xorm:"not null default '' VARCHAR(255) provider_name"`
+	ProviderModelID string    `xorm:"not null default '' VARCHAR(255) provider_model_id"`
+	Prompt          string    `xorm:"not null TEXT prompt"`
+	AspectRatio     string    `xorm:"not null default '' VARCHAR(50) aspect_ratio"`
+	Size            string    `xorm:"not null default '' VARCHAR(50) size"`
+	Quality         string    `xorm:"not null default '' VARCHAR(100) quality"`
+	Seconds         int       `xorm:"not null default 6 INT(11) seconds"`
+	Preset          string    `xorm:"not null default '' VARCHAR(100) preset"`
+	ReferenceImages string    `xorm:"not null TEXT reference_images"`
+	VideoURL        string    `xorm:"not null TEXT video_url"`
+	Status          string    `xorm:"not null default 'queued' VARCHAR(50) status"`
+	Progress        int       `xorm:"not null default 0 INT(11) progress"`
+	Error           string    `xorm:"not null TEXT error"`
+	ExpiresAt       time.Time `xorm:"DATETIME expires_at"`
+	CreatedAt       time.Time `xorm:"created not null default CURRENT_TIMESTAMP TIMESTAMP created_at"`
+	UpdatedAt       time.Time `xorm:"updated not null default CURRENT_TIMESTAMP TIMESTAMP updated_at"`
+}
+
+func (AIVideoGeneration) TableName() string { return "ai_video_generations" }

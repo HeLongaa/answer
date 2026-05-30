@@ -97,12 +97,12 @@ const Index: FC<Props> = ({ redDot, userInfo, logOut }) => {
           />
         </Dropdown.Toggle>
 
-        <Dropdown.Menu className="position-absolute">
+        <Dropdown.Menu className="position-absolute user-menu-dropdown">
           <Dropdown.Item
-            className="user-points-summary d-flex align-items-center justify-content-between gap-3"
+            className="user-points-summary"
             href={`${REACT_BASE_PATH}/users/settings/points`}
             onClick={handleLinkClick}>
-            <span className="d-flex align-items-center gap-2">
+            <span className="points-summary-label">
               <Icon name="coin" className="points-summary-icon" />
               <span>{t('header.nav.points')}</span>
             </span>

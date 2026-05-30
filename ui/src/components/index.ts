@@ -68,6 +68,8 @@ import BubbleAi from './BubbleAi';
 import BubbleUser from './BubbleUser';
 import Sender from './Sender';
 import TabNav from './TabNav';
+import AiSubscriptionPill from './AiSubscriptionPill';
+import CommunityPointsPill from './CommunityPointsPill';
 
 export {
   Avatar,
@@ -123,5 +125,7 @@ export {
   BubbleUser,
   Sender,
   TabNav,
+  AiSubscriptionPill,
+  CommunityPointsPill,
 };
 export type { EditorRef, JSONSchema, UISchema };

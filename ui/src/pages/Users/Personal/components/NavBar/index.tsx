@@ -68,7 +68,7 @@ const Index: FC<Props> = ({ slug, tabName = 'overview', isSelf }) => {
   const { t } = useTranslation('translation', { keyPrefix: 'personal' });
   return (
     <Nav
-      className="pt-2 mb-4 flex-nowrap"
+      className="personal-tabs flex-nowrap"
       variant="pills"
       style={{ overflow: 'auto' }}>
       {list.map((item) => {

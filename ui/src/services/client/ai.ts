@@ -70,15 +70,33 @@ export const getAiImageModels = () => {
   return request.get<Type.AiImageModel[]>('/answer/api/v1/ai-image/models');
 };
 
+export const getAiVideoModels = () => {
+  return request.get<Type.AiVideoModel[]>('/answer/api/v1/ai-video/models');
+};
+
 export const getAiImageGenerations = (limit = 30) => {
   return request.get<Type.AiImageGeneration[]>(
     `/answer/api/v1/ai-image/generations?limit=${limit}`,
   );
 };
 
+export const getAiVideoGenerations = (limit = 30) => {
+  return request.get<Type.AiVideoGeneration[]>(
+    `/answer/api/v1/ai-video/generations?limit=${limit}`,
+  );
+};
+
 export const generateAiImage = (params: Type.AiImageGenerateParams) => {
   return request.post<Type.AiImageGenerateResult>(
     '/answer/api/v1/ai-image/generations',
+    params,
+    { timeout: aiImageTimeout },
+  );
+};
+
+export const generateAiVideo = (params: Type.AiVideoGenerateParams) => {
+  return request.post<Type.AiVideoGenerateResult>(
+    '/answer/api/v1/ai-video/generations',
     params,
     { timeout: aiImageTimeout },
   );

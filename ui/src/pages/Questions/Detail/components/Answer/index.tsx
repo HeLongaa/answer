@@ -125,7 +125,7 @@ const Index: FC<Props> = ({
           <div className="lh-1">
             <Badge bg="success" pill>
               <Icon name="check-circle-fill me-1" />
-              Best answer
+              最佳答案
             </Badge>
           </div>
         )}

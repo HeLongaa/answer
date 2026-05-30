@@ -25,15 +25,60 @@ import { Link } from 'react-router-dom';
 import classnames from 'classnames';
 
 import { Avatar, Icon, SvgIcon } from '@/components';
-import type { UserInfoRes } from '@/common/interface';
-import { getUcBranding, UcBrandingEntry } from '@/services';
+import type { AiSubscriptionOverview, UserInfoRes } from '@/common/interface';
+import {
+  getAiSubscriptionOverview,
+  getUcBranding,
+  UcBrandingEntry,
+  usePointAccount,
+} from '@/services';
 import { userCenterStore } from '@/stores';
 
 interface Props {
   data: UserInfoRes;
+  isSelf?: boolean;
 }
 
-const Index: FC<Props> = ({ data }) => {
+const formatQuota = (value?: number) => {
+  if (value === -1) {
+    return '不限';
+  }
+  return String(value || 0);
+};
+
+const PersonalAiSummary: FC<{ username: string }> = ({ username }) => {
+  const [aiSubscription, setAiSubscription] =
+    useState<AiSubscriptionOverview | null>(null);
+  const { data: pointAccount } = usePointAccount();
+
+  useEffect(() => {
+    getAiSubscriptionOverview()
+      .then(setAiSubscription)
+      .catch(() => {
+        setAiSubscription(null);
+      });
+  }, [username]);
+
+  return (
+    <div className="personal-ai-summary mb-4">
+      <div className="personal-ai-summary-item personal-ai-plan">
+        <span className="personal-ai-summary-label">AI 订阅等级</span>
+        <strong>{aiSubscription?.plan_name || '免费版'}</strong>
+        <span>
+          剩余 {formatQuota(aiSubscription?.chat_points_remaining)} 点 · 视频{' '}
+          {formatQuota(aiSubscription?.video_quota_remaining)} 次
+        </span>
+      </div>
+      <div className="personal-ai-summary-item personal-points">
+        <span className="personal-ai-summary-label">积分余额</span>
+        <strong>{pointAccount?.balance || 0}</strong>
+        <span>可用于任务与悬赏</span>
+      </div>
+    </div>
+  );
+};
+
+const Index: FC<Props> = ({ data, isSelf = false }) => {
   const { t } = useTranslation('translation', { keyPrefix: 'personal' });
   const { agent: ucAgent } = userCenterStore();
   const [ucBranding, setUcBranding] = useState<UcBrandingEntry[]>([]);
@@ -51,11 +96,12 @@ const Index: FC<Props> = ({ data }) => {
   useEffect(() => {
     initData();
   }, [data?.username]);
+
   if (!data?.username) {
     return null;
   }
   return (
-    <div className="d-flex flex-column flex-md-row mb-4">
+    <div className="personal-user-info d-flex flex-column flex-md-row">
       {data?.status !== 'deleted' ? (
         <Link to={`/users/${data.username}`} reloadDocument>
           <Avatar
@@ -97,6 +143,8 @@ const Index: FC<Props> = ({ data }) => {
           )}
         </div>
         <div className="text-secondary mb-4">@{data.username}</div>
+
+        {isSelf ? <PersonalAiSummary username={data.username} /> : null}
 
         <div className="d-flex flex-wrap mb-3">
           <div className="me-3">

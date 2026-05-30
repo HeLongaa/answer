@@ -115,8 +115,12 @@
       transform 180ms ease;
 
     &.icon-link {
+      flex: 0 0 40px;
       width: 40px;
+      min-width: 40px;
+      max-width: 40px;
       height: 40px;
+      min-height: 40px;
       color: #5a6b80;
       background: rgba(255, 255, 255, 0.26);
       border: 1px solid rgba(255, 255, 255, 0.42);
@@ -139,11 +143,15 @@
   }
 
   #dropdown-basic {
+    flex: 0 0 40px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 40px;
+    min-width: 40px;
+    max-width: 40px;
     height: 40px;
+    min-height: 40px;
     padding: 1px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.42);
@@ -175,9 +183,22 @@
     filter: brightness(1.04);
   }
 
+  .user-menu-dropdown {
+    min-width: 176px;
+    padding: 0.45rem;
+  }
+
   .user-points-summary {
-    margin: 0.15rem 0.35rem 0.35rem;
-    padding: 0.65rem 0.7rem;
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: 0.75rem;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 42px;
+    margin: 0 0 0.35rem;
+    padding: 0.55rem 0.6rem;
     border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
     border-radius: 12px;
     background: linear-gradient(
@@ -188,9 +209,20 @@
       rgba(var(--bs-primary-rgb), 0.08);
     color: #1f2d40;
     font-weight: 700;
+    line-height: 1;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.68),
       0 10px 22px rgba(var(--bs-primary-rgb), 0.12);
+  }
+
+  .points-summary-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    min-height: 24px;
+    line-height: 1;
+    white-space: nowrap;
   }
 
   .user-points-summary:hover,
@@ -200,19 +232,33 @@
   }
 
   .points-summary-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     color: var(--an-navbar-accent, var(--bs-primary));
     font-size: 1.1rem;
+    line-height: 1;
+  }
+
+  .points-summary-icon::before {
+    display: block;
+    line-height: 1;
   }
 
   .points-summary-balance {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
     min-width: 2.35rem;
+    min-height: 24px;
     padding: 0.1rem 0.55rem;
     border-radius: 999px;
     background: rgba(var(--bs-primary-rgb), 0.14);
     color: var(--an-navbar-accent, var(--bs-primary));
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 800;
-    line-height: 1.3;
+    line-height: 1;
     text-align: center;
   }
 
@@ -221,9 +267,13 @@
   }
 
   .answer-navBar {
+    flex: 0 0 40px;
     font-size: 1rem;
     width: 40px;
+    min-width: 40px;
+    max-width: 40px;
     height: 40px;
+    min-height: 40px;
     padding: 0;
     border: 1px solid rgba(255, 255, 255, 0.42);
     border-radius: 999px;
@@ -270,9 +320,12 @@
   }
 
   .header-center {
-    position: relative;
+    position: absolute;
+    left: 50%;
+    top: 50%;
     align-items: center;
     justify-content: center;
+    transform: translate(-50%, -50%);
   }
 
   .header-segmented-nav {
@@ -631,6 +684,7 @@
     }
 
     .navbar-brand.side-nav-brand-hidden.brand-has-logo {
+      flex: 0 0 56px;
       width: 56px;
       min-width: 56px;
       max-width: 56px;
@@ -639,8 +693,11 @@
     }
 
     .navbar-brand.side-nav-brand-hidden.brand-has-logo .logo {
+      width: 28px;
+      height: 28px;
       max-width: 28px;
-      max-height: 1.45rem;
+      max-height: 28px;
+      object-fit: contain;
     }
   }
 }
@@ -651,6 +708,7 @@
       padding-left: 16px;
       padding-right: 16px;
       gap: 0.5rem;
+      overflow: hidden;
     }
 
     .fixed-width {
@@ -663,6 +721,21 @@
       overflow: hidden;
       text-overflow: ellipsis;
       min-width: 0;
+    }
+
+    .navbar-brand.side-nav-brand-hidden.brand-has-logo {
+      flex-basis: 56px;
+    }
+
+    .answer-navBar,
+    .nav-link.icon-link,
+    #dropdown-basic {
+      flex-basis: 40px;
+      width: 40px;
+      min-width: 40px;
+      max-width: 40px;
+      height: 40px;
+      min-height: 40px;
     }
   }
 }

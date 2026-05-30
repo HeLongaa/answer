@@ -110,6 +110,18 @@ type AiChatConfigService interface {
 	EditImage(ctx context.Context, userID string, req *schema.AIImageEditReq) (*schema.AIImageGenerateResp, error)
 	ListUserImageGenerations(ctx context.Context, userID string, limit int) ([]*schema.AIImageGenerationResp, error)
 	GetUserImageFilePath(ctx context.Context, userID, ownerID, filename string) (string, error)
+	ListVideoProviders(ctx context.Context) ([]*schema.AIVideoProviderResp, error)
+	CreateVideoProvider(ctx context.Context, req *schema.AIVideoProviderReq) (*schema.AIVideoProviderResp, error)
+	UpdateVideoProvider(ctx context.Context, id int, req *schema.AIVideoProviderReq) (*schema.AIVideoProviderResp, error)
+	DeleteVideoProvider(ctx context.Context, id int) error
+	ListVideoModels(ctx context.Context, onlyEnabled bool) ([]*schema.AIVideoModelResp, error)
+	SaveVideoModel(ctx context.Context, id int, req *schema.AIVideoModelReq) (*schema.AIVideoModelResp, error)
+	DeleteVideoModel(ctx context.Context, id int) error
+	GetVideoSetting(ctx context.Context) (*schema.AIVideoSettingResp, error)
+	SaveVideoSetting(ctx context.Context, req *schema.AIVideoSettingReq) (*schema.AIVideoSettingResp, error)
+	GenerateVideo(ctx context.Context, userID string, req *schema.AIVideoGenerateReq) (*schema.AIVideoGenerateResp, error)
+	ListUserVideoGenerations(ctx context.Context, userID string, limit int) ([]*schema.AIVideoGenerationResp, error)
+	GetUserVideoFilePath(ctx context.Context, userID, ownerID, filename string) (string, error)
 }
 
 type aiChatConfigService struct {
@@ -594,6 +606,18 @@ func (s *aiChatConfigService) GetSubscriptionOverview(ctx context.Context, userI
 	if err != nil {
 		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
 	}
+	if err := s.ensureVideoTables(ctx); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	dayStart, dayEnd := currentDayRange()
+	videoDailyUsed, err := s.repo.CountUserVideoGenerations(ctx, userID, dayStart, dayEnd)
+	if err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	videoUsed, err := s.repo.CountUserVideoGenerations(ctx, userID, monthStart, monthEnd)
+	if err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
 	chatRemaining := plan.ChatPoints - chatUsed
 	if plan.ChatPoints == -1 {
 		chatRemaining = -1
@@ -606,6 +630,18 @@ func (s *aiChatConfigService) GetSubscriptionOverview(ctx context.Context, userI
 	} else if imageRemaining < 0 {
 		imageRemaining = 0
 	}
+	videoDailyRemaining := plan.VideoDailyQuota - videoDailyUsed
+	if plan.VideoDailyQuota == -1 {
+		videoDailyRemaining = -1
+	} else if videoDailyRemaining < 0 {
+		videoDailyRemaining = 0
+	}
+	videoRemaining := plan.VideoQuota - videoUsed
+	if plan.VideoQuota == -1 {
+		videoRemaining = -1
+	} else if videoRemaining < 0 {
+		videoRemaining = 0
+	}
 	return &schema.AISubscriptionOverviewResp{
 		PlanID:              plan.PlanID,
 		PlanName:            plan.Name,
@@ -615,6 +651,12 @@ func (s *aiChatConfigService) GetSubscriptionOverview(ctx context.Context, userI
 		ImageQuota:          plan.ImageQuota,
 		ImageQuotaUsed:      imageUsed,
 		ImageQuotaRemaining: imageRemaining,
+		VideoDailyQuota:     plan.VideoDailyQuota,
+		VideoDailyUsed:      videoDailyUsed,
+		VideoDailyRemaining: videoDailyRemaining,
+		VideoQuota:          plan.VideoQuota,
+		VideoQuotaUsed:      videoUsed,
+		VideoQuotaRemaining: videoRemaining,
 		AvailableModels:     planResp.AvailableModelIDs,
 		ConsumeRates:        s.listSubscriptionModelRates(ctx),
 		PeriodStart:         unixOrZero(periodStart),
@@ -1273,6 +1315,340 @@ func (s *aiChatConfigService) GetUserImageFilePath(ctx context.Context, userID, 
 	return filePath, nil
 }
 
+func (s *aiChatConfigService) ListVideoProviders(ctx context.Context) ([]*schema.AIVideoProviderResp, error) {
+	if err := s.ensureVideoTables(ctx); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	providers, err := s.repo.ListVideoProviders(ctx)
+	if err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	resp := make([]*schema.AIVideoProviderResp, 0, len(providers))
+	for _, provider := range providers {
+		resp = append(resp, s.formatVideoProvider(provider, true))
+	}
+	return resp, nil
+}
+
+func (s *aiChatConfigService) CreateVideoProvider(ctx context.Context, req *schema.AIVideoProviderReq) (*schema.AIVideoProviderResp, error) {
+	if err := s.ensureVideoTables(ctx); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if strings.TrimSpace(req.APIKey) == "" {
+		return nil, errors.BadRequest("api_key is required")
+	}
+	baseURL, err := normalizeBaseURL(req.BaseURL)
+	if err != nil {
+		return nil, errors.BadRequest("base_url is invalid")
+	}
+	provider := &entity.AIVideoProvider{
+		Name:    strings.TrimSpace(req.Name),
+		BaseURL: baseURL,
+		APIKey:  strings.TrimSpace(req.APIKey),
+		Enabled: req.Enabled,
+		Remark:  req.Remark,
+	}
+	if err := s.repo.CreateVideoProvider(ctx, provider); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	return s.formatVideoProvider(provider, true), nil
+}
+
+func (s *aiChatConfigService) UpdateVideoProvider(ctx context.Context, id int, req *schema.AIVideoProviderReq) (*schema.AIVideoProviderResp, error) {
+	if err := s.ensureVideoTables(ctx); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	provider, exist, err := s.repo.GetVideoProvider(ctx, id)
+	if err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if !exist {
+		return nil, errors.BadRequest(reason.ObjectNotFound)
+	}
+	baseURL, err := normalizeBaseURL(req.BaseURL)
+	if err != nil {
+		return nil, errors.BadRequest("base_url is invalid")
+	}
+	provider.Name = strings.TrimSpace(req.Name)
+	provider.BaseURL = baseURL
+	provider.Enabled = req.Enabled
+	provider.Remark = req.Remark
+	cols := []string{"name", "base_url", "enabled", "remark"}
+	if strings.TrimSpace(req.APIKey) != "" && !isAllMask(req.APIKey) {
+		provider.APIKey = strings.TrimSpace(req.APIKey)
+		cols = append(cols, "api_key")
+	}
+	if err := s.repo.UpdateVideoProvider(ctx, provider, cols...); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	return s.formatVideoProvider(provider, true), nil
+}
+
+func (s *aiChatConfigService) DeleteVideoProvider(ctx context.Context, id int) error {
+	if err := s.ensureVideoTables(ctx); err != nil {
+		return errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if err := s.repo.DeleteVideoProvider(ctx, id); err != nil {
+		return errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	return nil
+}
+
+func (s *aiChatConfigService) ListVideoModels(ctx context.Context, onlyEnabled bool) ([]*schema.AIVideoModelResp, error) {
+	if err := s.ensureVideoTables(ctx); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	models, err := s.repo.ListVideoModels(ctx, onlyEnabled)
+	if err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	resp := make([]*schema.AIVideoModelResp, 0, len(models))
+	for _, model := range models {
+		resp = append(resp, s.formatVideoModel(ctx, model))
+	}
+	return resp, nil
+}
+
+func (s *aiChatConfigService) SaveVideoModel(ctx context.Context, id int, req *schema.AIVideoModelReq) (*schema.AIVideoModelResp, error) {
+	if err := s.ensureVideoTables(ctx); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if req.ProviderID <= 0 {
+		return nil, errors.BadRequest("provider_id is required")
+	}
+	if !modelIDPattern.MatchString(strings.TrimSpace(req.SiteModelID)) {
+		return nil, errors.BadRequest("site_model_id can only contain lowercase letters, numbers, hyphen and underscore")
+	}
+	if strings.TrimSpace(req.ProviderModelID) == "" {
+		return nil, errors.BadRequest("provider_model_id is required")
+	}
+	if strings.TrimSpace(req.DefaultSize) == "" {
+		req.DefaultSize = "1280x720"
+	}
+	if req.DefaultSeconds == 0 {
+		req.DefaultSeconds = 6
+	}
+	if err := validateVideoSeconds(req.DefaultSeconds); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(req.DefaultResolution) == "" {
+		req.DefaultResolution = "720p"
+	}
+	if strings.TrimSpace(req.DefaultPreset) == "" {
+		req.DefaultPreset = "custom"
+	}
+	if err := validateVideoRequestOptions(req.DefaultSize, req.DefaultResolution, req.DefaultPreset); err != nil {
+		return nil, err
+	}
+	if _, exist, err := s.repo.GetVideoProvider(ctx, req.ProviderID); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	} else if !exist {
+		return nil, errors.BadRequest("provider is not available")
+	}
+	model := &entity.AIVideoModel{}
+	if id > 0 {
+		current, exist, err := s.repo.GetVideoModel(ctx, id)
+		if err != nil {
+			return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+		}
+		if !exist {
+			return nil, errors.BadRequest(reason.ObjectNotFound)
+		}
+		model = current
+	}
+	model.ProviderID = req.ProviderID
+	model.SiteModelID = strings.TrimSpace(req.SiteModelID)
+	model.ProviderModelID = strings.TrimSpace(req.ProviderModelID)
+	model.DisplayName = req.DisplayName
+	model.Description = req.Description
+	model.DefaultSize = req.DefaultSize
+	model.DefaultSeconds = req.DefaultSeconds
+	model.DefaultResolution = req.DefaultResolution
+	model.DefaultPreset = req.DefaultPreset
+	model.Enabled = req.Enabled
+	model.SortOrder = req.SortOrder
+	if err := s.repo.SaveVideoModel(ctx, model); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	return s.formatVideoModel(ctx, model), nil
+}
+
+func (s *aiChatConfigService) DeleteVideoModel(ctx context.Context, id int) error {
+	if err := s.ensureVideoTables(ctx); err != nil {
+		return errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if err := s.repo.DeleteVideoModel(ctx, id); err != nil {
+		return errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	return nil
+}
+
+func (s *aiChatConfigService) GetVideoSetting(ctx context.Context) (*schema.AIVideoSettingResp, error) {
+	if err := s.ensureVideoTables(ctx); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	setting, exist, err := s.repo.GetVideoSetting(ctx)
+	if err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if !exist {
+		setting = &entity.AIVideoSetting{ID: 1, RetentionDays: 30}
+	}
+	return s.formatVideoSetting(setting), nil
+}
+
+func (s *aiChatConfigService) SaveVideoSetting(ctx context.Context, req *schema.AIVideoSettingReq) (*schema.AIVideoSettingResp, error) {
+	if err := s.ensureVideoTables(ctx); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if req.RetentionDays < 1 || req.RetentionDays > 3650 {
+		return nil, errors.BadRequest("retention_days must be between 1 and 3650")
+	}
+	setting := &entity.AIVideoSetting{ID: 1, RetentionDays: req.RetentionDays}
+	if err := s.repo.SaveVideoSetting(ctx, setting); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	return s.formatVideoSetting(setting), nil
+}
+
+func (s *aiChatConfigService) GenerateVideo(ctx context.Context, userID string, req *schema.AIVideoGenerateReq) (*schema.AIVideoGenerateResp, error) {
+	if err := s.ensureVideoTables(ctx); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if userID == "" {
+		return nil, errors.Unauthorized(reason.UnauthorizedError)
+	}
+	req.Prompt = strings.TrimSpace(req.Prompt)
+	req.Model = strings.TrimSpace(req.Model)
+	if req.Prompt == "" || req.Model == "" {
+		return nil, errors.BadRequest("prompt and model are required")
+	}
+	user, exist, err := s.userRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if !exist {
+		return nil, errors.BadRequest(reason.UserNotFound)
+	}
+	plan, _, err := s.getEffectiveUserPlan(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.checkVideoQuota(ctx, userID, plan); err != nil {
+		return nil, err
+	}
+	model, exist, err := s.repo.GetVideoModelBySiteModelID(ctx, req.Model)
+	if err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if !exist || !model.Enabled {
+		return nil, errors.BadRequest("video model is not available")
+	}
+	provider, exist, err := s.repo.GetVideoProvider(ctx, model.ProviderID)
+	if err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	if !exist || !provider.Enabled {
+		return nil, errors.BadRequest("video provider is not available")
+	}
+	if strings.TrimSpace(req.Size) == "" {
+		req.Size = model.DefaultSize
+	}
+	if req.Seconds == 0 {
+		req.Seconds = model.DefaultSeconds
+	}
+	if strings.TrimSpace(req.Quality) == "" {
+		req.Quality = model.DefaultResolution
+	}
+	if strings.TrimSpace(req.Preset) == "" {
+		req.Preset = model.DefaultPreset
+	}
+	if err := validateVideoSeconds(req.Seconds); err != nil {
+		return nil, err
+	}
+	if err := validateVideoRequestOptions(req.Size, req.Quality, req.Preset); err != nil {
+		return nil, err
+	}
+
+	generationID := "vid_" + uid.IDStr()
+	runCtx := context.WithoutCancel(ctx)
+	setting, _ := s.GetVideoSetting(runCtx)
+	expiresAt := time.Now().AddDate(0, 0, setting.RetentionDays)
+	referenceImages, _ := json.Marshal(req.ReferenceImages)
+	record := &entity.AIVideoGeneration{
+		GenerationID:    generationID,
+		UserID:          userID,
+		SiteModelID:     model.SiteModelID,
+		ProviderID:      provider.ID,
+		ProviderName:    provider.Name,
+		ProviderModelID: model.ProviderModelID,
+		Prompt:          req.Prompt,
+		AspectRatio:     videoAspectRatio(req.Size),
+		Size:            req.Size,
+		Quality:         req.Quality,
+		Seconds:         req.Seconds,
+		Preset:          req.Preset,
+		ReferenceImages: string(referenceImages),
+		Status:          "queued",
+		Progress:        0,
+		ExpiresAt:       expiresAt,
+	}
+	if err := s.repo.CreateVideoGeneration(runCtx, record); err != nil {
+		log.Errorf("ai video generation pending record failed generation_id=%s user_id=%s error=%v", generationID, userID, err)
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	log.Infof(
+		"ai video generation accepted generation_id=%s user_id=%s site_model=%s provider=%s provider_model=%s base_url=%s size=%s seconds=%d quality=%s preset=%s references=%d",
+		generationID, userID, model.SiteModelID, provider.Name, model.ProviderModelID, strings.TrimRight(provider.BaseURL, "/"), req.Size, req.Seconds, req.Quality, req.Preset, len(req.ReferenceImages),
+	)
+	go s.runVideoGeneration(runCtx, provider, model, generationID, userID, req)
+	return &schema.AIVideoGenerateResp{
+		GenerationID: generationID,
+		Status:       record.Status,
+		Progress:     record.Progress,
+		Size:         req.Size,
+		Seconds:      req.Seconds,
+		ExpiresAt:    expiresAt.Unix(),
+	}, nil
+}
+
+func (s *aiChatConfigService) ListUserVideoGenerations(ctx context.Context, userID string, limit int) ([]*schema.AIVideoGenerationResp, error) {
+	if err := s.ensureVideoTables(ctx); err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	records, err := s.repo.ListUserVideoGenerations(ctx, userID, limit)
+	if err != nil {
+		return nil, errors.InternalServer(reason.DatabaseError).WithError(err)
+	}
+	resp := make([]*schema.AIVideoGenerationResp, 0, len(records))
+	for _, record := range records {
+		resp = append(resp, s.formatVideoGeneration(record))
+	}
+	return resp, nil
+}
+
+func (s *aiChatConfigService) GetUserVideoFilePath(ctx context.Context, userID, ownerID, filename string) (string, error) {
+	if userID == "" {
+		return "", errors.Unauthorized(reason.UnauthorizedError)
+	}
+	if userID != ownerID {
+		return "", errors.BadRequest(reason.ForbiddenError)
+	}
+	if s.serviceConfig == nil || strings.TrimSpace(s.serviceConfig.UploadPath) == "" {
+		return "", errors.InternalServer(reason.UnknownError).WithError(fmt.Errorf("upload path is not configured"))
+	}
+	filename = path.Base(strings.TrimSpace(filename))
+	if filename == "." || filename == "/" || strings.Contains(filename, "..") {
+		return "", errors.BadRequest(reason.RequestFormatError)
+	}
+	filePath := filepath.Join(s.serviceConfig.UploadPath, constant.AIVideoSubPath, userID, filename)
+	info, err := os.Stat(filePath)
+	if err != nil || info.IsDir() {
+		return "", errors.BadRequest(reason.ObjectNotFound)
+	}
+	return filePath, nil
+}
+
 func (s *aiChatConfigService) validateMappingReq(req *schema.AIModelMappingReq) error {
 	req.SiteModelID = strings.TrimSpace(req.SiteModelID)
 	if !modelIDPattern.MatchString(req.SiteModelID) {
@@ -1305,13 +1681,17 @@ func (s *aiChatConfigService) ensureImageTables(ctx context.Context) error {
 	return s.repo.EnsureImageTables(ctx)
 }
 
+func (s *aiChatConfigService) ensureVideoTables(ctx context.Context) error {
+	return s.repo.EnsureVideoTables(ctx)
+}
+
 func (s *aiChatConfigService) validatePlanReq(ctx context.Context, excludeID int, req *schema.AISubscriptionPlanReq) error {
 	req.PlanID = strings.TrimSpace(req.PlanID)
 	if !modelIDPattern.MatchString(req.PlanID) {
 		return errors.BadRequest("plan_id can only contain lowercase letters, numbers, hyphen and underscore")
 	}
-	if req.MonthlyPrice < 0 || req.ChatPoints < -1 || req.ImageQuota < 0 {
-		return errors.BadRequest("monthly_price and image_quota cannot be negative, chat_points must be -1 or greater")
+	if req.MonthlyPrice < 0 || req.ChatPoints < -1 || req.ImageQuota < -1 || req.VideoDailyQuota < -1 || req.VideoQuota < -1 {
+		return errors.BadRequest("monthly_price cannot be negative, quotas must be -1 or greater")
 	}
 	if len(req.ModelMappingIDs) == 0 {
 		return errors.BadRequest("at least one available model is required")
@@ -1415,6 +1795,8 @@ func (s *aiChatConfigService) formatPlan(ctx context.Context, plan *entity.AISub
 		MonthlyPrice:      plan.MonthlyPrice,
 		ChatPoints:        plan.ChatPoints,
 		ImageQuota:        plan.ImageQuota,
+		VideoDailyQuota:   plan.VideoDailyQuota,
+		VideoQuota:        plan.VideoQuota,
 		PurchaseURL:       plan.PurchaseURL,
 		ModelMappingIDs:   modelIDs,
 		AvailableModelIDs: siteModelIDs,
@@ -1533,6 +1915,84 @@ func (s *aiChatConfigService) formatImageGeneration(record *entity.AIImageGenera
 		Count:           record.Count,
 		ImageURLs:       imageURLs,
 		Status:          record.Status,
+		Error:           record.Error,
+		ExpiresAt:       unixOrZero(record.ExpiresAt),
+		CreatedAt:       unixOrZero(record.CreatedAt),
+		UpdatedAt:       unixOrZero(record.UpdatedAt),
+	}
+}
+
+func (s *aiChatConfigService) formatVideoProvider(provider *entity.AIVideoProvider, mask bool) *schema.AIVideoProviderResp {
+	apiKey := provider.APIKey
+	if mask {
+		apiKey = maskSecret(apiKey)
+	}
+	return &schema.AIVideoProviderResp{
+		ID:        provider.ID,
+		Name:      provider.Name,
+		BaseURL:   provider.BaseURL,
+		APIKey:    apiKey,
+		Enabled:   provider.Enabled,
+		Remark:    provider.Remark,
+		CreatedAt: provider.CreatedAt.Unix(),
+		UpdatedAt: provider.UpdatedAt.Unix(),
+	}
+}
+
+func (s *aiChatConfigService) formatVideoModel(ctx context.Context, model *entity.AIVideoModel) *schema.AIVideoModelResp {
+	providerName := ""
+	if provider, exist, _ := s.repo.GetVideoProvider(ctx, model.ProviderID); exist {
+		providerName = provider.Name
+	}
+	return &schema.AIVideoModelResp{
+		ID:                model.ID,
+		ProviderID:        model.ProviderID,
+		ProviderName:      providerName,
+		SiteModelID:       model.SiteModelID,
+		ProviderModelID:   model.ProviderModelID,
+		DisplayName:       fallbackText(model.DisplayName, model.SiteModelID),
+		Description:       model.Description,
+		DefaultSize:       model.DefaultSize,
+		DefaultSeconds:    model.DefaultSeconds,
+		DefaultResolution: model.DefaultResolution,
+		DefaultPreset:     model.DefaultPreset,
+		Enabled:           model.Enabled,
+		SortOrder:         model.SortOrder,
+		CreatedAt:         model.CreatedAt.Unix(),
+		UpdatedAt:         model.UpdatedAt.Unix(),
+	}
+}
+
+func (s *aiChatConfigService) formatVideoSetting(setting *entity.AIVideoSetting) *schema.AIVideoSettingResp {
+	return &schema.AIVideoSettingResp{
+		RetentionDays: setting.RetentionDays,
+		CreatedAt:     unixOrZero(setting.CreatedAt),
+		UpdatedAt:     unixOrZero(setting.UpdatedAt),
+	}
+}
+
+func (s *aiChatConfigService) formatVideoGeneration(record *entity.AIVideoGeneration) *schema.AIVideoGenerationResp {
+	referenceImages := make([]string, 0)
+	_ = json.Unmarshal([]byte(record.ReferenceImages), &referenceImages)
+	return &schema.AIVideoGenerationResp{
+		ID:              record.ID,
+		GenerationID:    record.GenerationID,
+		UpstreamID:      record.UpstreamID,
+		UserID:          record.UserID,
+		SiteModelID:     record.SiteModelID,
+		ProviderID:      record.ProviderID,
+		ProviderName:    record.ProviderName,
+		ProviderModelID: record.ProviderModelID,
+		Prompt:          record.Prompt,
+		AspectRatio:     record.AspectRatio,
+		Size:            record.Size,
+		Quality:         record.Quality,
+		Seconds:         record.Seconds,
+		Preset:          record.Preset,
+		ReferenceImages: referenceImages,
+		VideoURL:        record.VideoURL,
+		Status:          record.Status,
+		Progress:        record.Progress,
 		Error:           record.Error,
 		ExpiresAt:       unixOrZero(record.ExpiresAt),
 		CreatedAt:       unixOrZero(record.CreatedAt),
@@ -1861,6 +2321,220 @@ func (s *aiChatConfigService) saveGeneratedImage(userID, generationID string, in
 	return fmt.Sprintf("/uploads/%s/%s/%s", constant.AIImageSubPath, userID, filename), nil
 }
 
+func (s *aiChatConfigService) runVideoGeneration(ctx context.Context, provider *entity.AIVideoProvider, model *entity.AIVideoModel, generationID, userID string, req *schema.AIVideoGenerateReq) {
+	log.Infof("ai video generation start generation_id=%s user_id=%s provider=%s provider_model=%s", generationID, userID, provider.Name, model.ProviderModelID)
+	if err := s.repo.UpdateVideoGeneration(ctx, generationID, &entity.AIVideoGeneration{
+		Status:   "in_progress",
+		Progress: 1,
+	}, "status", "progress"); err != nil {
+		log.Errorf("ai video generation start status update failed generation_id=%s user_id=%s error=%v", generationID, userID, err)
+	}
+	upstreamID, err := s.createUpstreamVideo(ctx, provider, model, generationID, req)
+	if err != nil {
+		log.Errorf("ai video upstream create failed generation_id=%s user_id=%s provider=%s provider_model=%s error=%v", generationID, userID, provider.Name, model.ProviderModelID, err)
+		if updateErr := s.repo.UpdateVideoGeneration(ctx, generationID, &entity.AIVideoGeneration{
+			Status: "failed",
+			Error:  err.Error(),
+		}, "status", "error"); updateErr != nil {
+			log.Errorf("ai video generation failed status update failed generation_id=%s user_id=%s error=%v", generationID, userID, updateErr)
+		}
+		return
+	}
+	log.Infof("ai video upstream created generation_id=%s user_id=%s upstream_id=%s", generationID, userID, upstreamID)
+	if err := s.repo.UpdateVideoGeneration(ctx, generationID, &entity.AIVideoGeneration{
+		UpstreamID: upstreamID,
+	}, "upstream_id"); err != nil {
+		log.Errorf("ai video upstream id update failed generation_id=%s user_id=%s upstream_id=%s error=%v", generationID, userID, upstreamID, err)
+	}
+
+	videoURL, err := s.waitAndSaveUpstreamVideo(ctx, provider, generationID, upstreamID, userID)
+	if err != nil {
+		log.Errorf("ai video generation failed generation_id=%s user_id=%s upstream_id=%s error=%v", generationID, userID, upstreamID, err)
+		if updateErr := s.repo.UpdateVideoGeneration(ctx, generationID, &entity.AIVideoGeneration{
+			Status: "failed",
+			Error:  err.Error(),
+		}, "status", "error"); updateErr != nil {
+			log.Errorf("ai video generation failed status update failed generation_id=%s user_id=%s error=%v", generationID, userID, updateErr)
+		}
+		return
+	}
+	if err := s.repo.UpdateVideoGeneration(ctx, generationID, &entity.AIVideoGeneration{
+		VideoURL: videoURL,
+		Status:   "completed",
+		Progress: 100,
+		Error:    "",
+	}, "video_url", "status", "progress", "error"); err != nil {
+		log.Errorf("ai video generation completed status update failed generation_id=%s user_id=%s video_url=%s error=%v", generationID, userID, videoURL, err)
+		return
+	}
+	log.Infof("ai video generation completed generation_id=%s user_id=%s upstream_id=%s video_url=%s", generationID, userID, upstreamID, videoURL)
+}
+
+func (s *aiChatConfigService) createUpstreamVideo(ctx context.Context, provider *entity.AIVideoProvider, model *entity.AIVideoModel, generationID string, req *schema.AIVideoGenerateReq) (string, error) {
+	baseURL := strings.TrimRight(provider.BaseURL, "/")
+	log.Infof("ai video upstream request generation_id=%s endpoint=%s model=%s size=%s seconds=%d quality=%s preset=%s references=%d", generationID, "/videos", model.ProviderModelID, req.Size, req.Seconds, req.Quality, req.Preset, len(req.ReferenceImages))
+	request := resty.New().
+		SetRetryCount(1).
+		SetHeader("Authorization", fmt.Sprintf("Bearer %s", provider.APIKey)).
+		R().
+		SetContext(ctx).
+		SetFormData(map[string]string{
+			"model":           model.ProviderModelID,
+			"prompt":          req.Prompt,
+			"seconds":         fmt.Sprint(req.Seconds),
+			"size":            req.Size,
+			"resolution_name": req.Quality,
+			"preset":          req.Preset,
+		})
+	preparedImages, err := prepareReferenceImages(ctx, req.ReferenceImages)
+	if err != nil {
+		log.Errorf("ai video reference prepare failed generation_id=%s error=%v", generationID, err)
+		return "", err
+	}
+	if len(preparedImages) > 0 {
+		log.Infof("ai video prepared references generation_id=%s %s", generationID, summarizeReferenceImages(preparedImages))
+	}
+	for index, image := range preparedImages {
+		request.SetFileReader("input_reference[]", fmt.Sprintf("reference-%d%s", index+1, image.Ext), bytes.NewReader(image.Data))
+	}
+	resp, err := request.Post(baseURL + "/videos")
+	if err != nil {
+		log.Errorf("ai video upstream request failed generation_id=%s endpoint=%s error=%v", generationID, "/videos", err)
+		return "", err
+	}
+	if !resp.IsSuccess() {
+		log.Errorf("ai video upstream non-success generation_id=%s endpoint=%s status=%d body=%s", generationID, "/videos", resp.StatusCode(), responseSnippet(resp.Body()))
+		return "", fmt.Errorf("video create status %d: %s", resp.StatusCode(), resp.String())
+	}
+	var parsed struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(resp.Body(), &parsed); err != nil {
+		log.Errorf("ai video upstream response parse failed generation_id=%s bytes=%d body=%s error=%v", generationID, len(resp.Body()), responseSnippet(resp.Body()), err)
+		return "", err
+	}
+	if strings.TrimSpace(parsed.ID) == "" {
+		log.Errorf("ai video upstream response missing id generation_id=%s bytes=%d body=%s", generationID, len(resp.Body()), responseSnippet(resp.Body()))
+		return "", fmt.Errorf("video create response missing id")
+	}
+	log.Infof("ai video upstream success generation_id=%s endpoint=%s status=%d bytes=%d upstream_id=%s", generationID, "/videos", resp.StatusCode(), len(resp.Body()), parsed.ID)
+	return parsed.ID, nil
+}
+
+func (s *aiChatConfigService) waitAndSaveUpstreamVideo(ctx context.Context, provider *entity.AIVideoProvider, generationID, upstreamID, userID string) (string, error) {
+	baseURL := strings.TrimRight(provider.BaseURL, "/")
+	client := resty.New().SetRetryCount(1)
+	deadline := time.Now().Add(12 * time.Minute)
+	lastStatus := ""
+	lastProgress := -1
+	for time.Now().Before(deadline) {
+		resp, err := client.R().
+			SetContext(ctx).
+			SetHeader("Authorization", fmt.Sprintf("Bearer %s", provider.APIKey)).
+			Get(baseURL + "/videos/" + url.PathEscape(upstreamID))
+		if err != nil {
+			log.Errorf("ai video upstream status request failed generation_id=%s upstream_id=%s error=%v", generationID, upstreamID, err)
+			return "", err
+		}
+		if !resp.IsSuccess() {
+			log.Errorf("ai video upstream status non-success generation_id=%s upstream_id=%s status=%d body=%s", generationID, upstreamID, resp.StatusCode(), responseSnippet(resp.Body()))
+			return "", fmt.Errorf("video status %d: %s", resp.StatusCode(), resp.String())
+		}
+		var status struct {
+			Status   string `json:"status"`
+			Progress int    `json:"progress"`
+			Error    struct {
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		if err := json.Unmarshal(resp.Body(), &status); err != nil {
+			log.Errorf("ai video upstream status parse failed generation_id=%s upstream_id=%s bytes=%d body=%s error=%v", generationID, upstreamID, len(resp.Body()), responseSnippet(resp.Body()), err)
+			return "", err
+		}
+		progress := max(1, min(99, status.Progress))
+		normalizedStatus := normalizeVideoStatus(status.Status)
+		recordStatus := normalizedStatus
+		if status.Status == "completed" {
+			recordStatus = "in_progress"
+			progress = 99
+		}
+		if normalizedStatus != lastStatus || progress != lastProgress {
+			log.Infof("ai video upstream status generation_id=%s upstream_id=%s status=%s progress=%d", generationID, upstreamID, normalizedStatus, progress)
+			lastStatus = normalizedStatus
+			lastProgress = progress
+		}
+		if err := s.repo.UpdateVideoGeneration(ctx, generationID, &entity.AIVideoGeneration{
+			Status:   recordStatus,
+			Progress: progress,
+		}, "status", "progress"); err != nil {
+			log.Errorf("ai video progress update failed generation_id=%s upstream_id=%s status=%s progress=%d error=%v", generationID, upstreamID, recordStatus, progress, err)
+		}
+		if status.Status == "completed" {
+			raw, err := s.downloadUpstreamVideo(ctx, provider, upstreamID)
+			if err != nil {
+				log.Errorf("ai video download failed generation_id=%s upstream_id=%s error=%v", generationID, upstreamID, err)
+				return "", err
+			}
+			return s.saveGeneratedVideo(userID, generationID, raw)
+		}
+		if status.Status == "failed" {
+			if status.Error.Message != "" {
+				return "", fmt.Errorf("%s", status.Error.Message)
+			}
+			return "", fmt.Errorf("video generation failed")
+		}
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(3 * time.Second):
+		}
+	}
+	log.Errorf("ai video generation timed out generation_id=%s upstream_id=%s", generationID, upstreamID)
+	return "", fmt.Errorf("video generation timed out")
+}
+
+func (s *aiChatConfigService) downloadUpstreamVideo(ctx context.Context, provider *entity.AIVideoProvider, upstreamID string) ([]byte, error) {
+	resp, err := resty.New().
+		SetRetryCount(1).
+		SetHeader("Authorization", fmt.Sprintf("Bearer %s", provider.APIKey)).
+		R().
+		SetContext(ctx).
+		Get(strings.TrimRight(provider.BaseURL, "/") + "/videos/" + url.PathEscape(upstreamID) + "/content")
+	if err != nil {
+		log.Errorf("ai video content request failed upstream_id=%s error=%v", upstreamID, err)
+		return nil, err
+	}
+	if !resp.IsSuccess() {
+		log.Errorf("ai video content non-success upstream_id=%s status=%d body=%s", upstreamID, resp.StatusCode(), responseSnippet(resp.Body()))
+		return nil, fmt.Errorf("video content status %d: %s", resp.StatusCode(), resp.String())
+	}
+	if len(resp.Body()) == 0 {
+		log.Errorf("ai video content empty upstream_id=%s", upstreamID)
+		return nil, fmt.Errorf("video content is empty")
+	}
+	log.Infof("ai video content downloaded upstream_id=%s bytes=%d", upstreamID, len(resp.Body()))
+	return resp.Body(), nil
+}
+
+func (s *aiChatConfigService) saveGeneratedVideo(userID, generationID string, data []byte) (string, error) {
+	if s.serviceConfig == nil || strings.TrimSpace(s.serviceConfig.UploadPath) == "" {
+		return "", fmt.Errorf("upload path is not configured")
+	}
+	dir := filepath.Join(s.serviceConfig.UploadPath, constant.AIVideoSubPath, userID)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		log.Errorf("ai video save mkdir failed generation_id=%s user_id=%s dir=%s error=%v", generationID, userID, dir, err)
+		return "", err
+	}
+	filename := fmt.Sprintf("%s.mp4", generationID)
+	filePath := filepath.Join(dir, filename)
+	if err := os.WriteFile(filePath, data, 0644); err != nil {
+		log.Errorf("ai video save write failed generation_id=%s user_id=%s path=%s bytes=%d error=%v", generationID, userID, filePath, len(data), err)
+		return "", err
+	}
+	log.Infof("ai video saved generation_id=%s user_id=%s path=%s bytes=%d", generationID, userID, filePath, len(data))
+	return fmt.Sprintf("/uploads/%s/%s/%s", constant.AIVideoSubPath, userID, filename), nil
+}
+
 func (s *aiChatConfigService) loadUserGeneratedImage(userID, imageURL string) (*preparedReferenceImage, error) {
 	if s.serviceConfig == nil || strings.TrimSpace(s.serviceConfig.UploadPath) == "" {
 		return nil, fmt.Errorf("upload path is not configured")
@@ -1995,6 +2669,12 @@ func currentMonthRange() (time.Time, time.Time) {
 	return start, start.AddDate(0, 1, 0)
 }
 
+func currentDayRange() (time.Time, time.Time) {
+	now := time.Now()
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	return start, start.AddDate(0, 0, 1)
+}
+
 func fallbackText(value, fallback string) string {
 	if strings.TrimSpace(value) == "" {
 		return fallback
@@ -2023,6 +2703,8 @@ func planFromReq(req *schema.AISubscriptionPlanReq) *entity.AISubscriptionPlan {
 		MonthlyPrice:    req.MonthlyPrice,
 		ChatPoints:      req.ChatPoints,
 		ImageQuota:      req.ImageQuota,
+		VideoDailyQuota: req.VideoDailyQuota,
+		VideoQuota:      req.VideoQuota,
 		PurchaseURL:     req.PurchaseURL,
 		TaskDescription: req.TaskDescription,
 		SortOrder:       req.SortOrder,
@@ -2173,6 +2855,83 @@ func imageAspectRatio(size string) string {
 	default:
 		return "1:1"
 	}
+}
+
+func validateVideoSeconds(seconds int) error {
+	switch seconds {
+	case 6, 10, 12, 16, 20:
+		return nil
+	default:
+		return errors.BadRequest("seconds must be one of 6, 10, 12, 16, 20")
+	}
+}
+
+func validateVideoRequestOptions(size, quality, preset string) error {
+	switch strings.TrimSpace(size) {
+	case "720x1280", "1280x720", "1024x1024", "1024x1792", "1792x1024":
+	default:
+		return errors.BadRequest("size is not supported")
+	}
+	switch strings.TrimSpace(quality) {
+	case "480p", "720p":
+	default:
+		return errors.BadRequest("quality must be 480p or 720p")
+	}
+	switch strings.TrimSpace(preset) {
+	case "fun", "normal", "spicy", "custom":
+	default:
+		return errors.BadRequest("preset is not supported")
+	}
+	return nil
+}
+
+func videoAspectRatio(size string) string {
+	switch strings.TrimSpace(size) {
+	case "720x1280", "1024x1792":
+		return "9:16"
+	case "1280x720", "1792x1024":
+		return "16:9"
+	case "1024x1024":
+		return "1:1"
+	default:
+		return "16:9"
+	}
+}
+
+func normalizeVideoStatus(status string) string {
+	switch strings.TrimSpace(status) {
+	case "queued", "in_progress", "completed", "failed":
+		return status
+	default:
+		return "in_progress"
+	}
+}
+
+func (s *aiChatConfigService) checkVideoQuota(ctx context.Context, userID string, plan *entity.AISubscriptionPlan) error {
+	if plan.VideoDailyQuota == -1 && plan.VideoQuota == -1 {
+		return nil
+	}
+	dayStart, dayEnd := currentDayRange()
+	monthStart, monthEnd := currentMonthRange()
+	if plan.VideoDailyQuota != -1 {
+		used, err := s.repo.CountUserVideoGenerations(ctx, userID, dayStart, dayEnd)
+		if err != nil {
+			return errors.InternalServer(reason.DatabaseError).WithError(err)
+		}
+		if used+1 > plan.VideoDailyQuota {
+			return errors.BadRequest("daily video quota is insufficient")
+		}
+	}
+	if plan.VideoQuota != -1 {
+		used, err := s.repo.CountUserVideoGenerations(ctx, userID, monthStart, monthEnd)
+		if err != nil {
+			return errors.InternalServer(reason.DatabaseError).WithError(err)
+		}
+		if used+1 > plan.VideoQuota {
+			return errors.BadRequest("monthly video quota is insufficient")
+		}
+	}
+	return nil
 }
 
 func prepareReferenceImages(ctx context.Context, rawImages []string) ([]*preparedReferenceImage, error) {

@@ -117,6 +117,8 @@ type AISubscriptionPlanReq struct {
 	MonthlyPrice    float64 `json:"monthly_price"`
 	ChatPoints      int     `json:"chat_points"`
 	ImageQuota      int     `json:"image_quota"`
+	VideoDailyQuota int     `json:"video_daily_quota"`
+	VideoQuota      int     `json:"video_quota"`
 	PurchaseURL     string  `json:"purchase_url"`
 	ModelMappingIDs []int   `json:"model_mapping_ids"`
 	TaskDescription string  `json:"task_description"`
@@ -131,6 +133,8 @@ type AISubscriptionPlanResp struct {
 	MonthlyPrice      float64  `json:"monthly_price"`
 	ChatPoints        int      `json:"chat_points"`
 	ImageQuota        int      `json:"image_quota"`
+	VideoDailyQuota   int      `json:"video_daily_quota"`
+	VideoQuota        int      `json:"video_quota"`
 	PurchaseURL       string   `json:"purchase_url"`
 	ModelMappingIDs   []int    `json:"model_mapping_ids"`
 	AvailableModelIDs []string `json:"available_model_ids"`
@@ -203,6 +207,12 @@ type AISubscriptionOverviewResp struct {
 	ImageQuota          int                        `json:"image_quota"`
 	ImageQuotaUsed      int                        `json:"image_quota_used"`
 	ImageQuotaRemaining int                        `json:"image_quota_remaining"`
+	VideoDailyQuota     int                        `json:"video_daily_quota"`
+	VideoDailyUsed      int                        `json:"video_daily_used"`
+	VideoDailyRemaining int                        `json:"video_daily_remaining"`
+	VideoQuota          int                        `json:"video_quota"`
+	VideoQuotaUsed      int                        `json:"video_quota_used"`
+	VideoQuotaRemaining int                        `json:"video_quota_remaining"`
 	AvailableModels     []string                   `json:"available_models"`
 	ConsumeRates        []*AISubscriptionModelRate `json:"consume_rates"`
 	PeriodStart         int64                      `json:"period_start"`
@@ -338,6 +348,111 @@ type AIImageGenerateResp struct {
 	Size         string   `json:"size"`
 	ImageURLs    []string `json:"image_urls"`
 	ExpiresAt    int64    `json:"expires_at"`
+}
+
+type AIVideoProviderReq struct {
+	Name    string `json:"name" validate:"required"`
+	BaseURL string `json:"base_url" validate:"required"`
+	APIKey  string `json:"api_key"`
+	Enabled bool   `json:"enabled"`
+	Remark  string `json:"remark"`
+}
+
+type AIVideoProviderResp struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	BaseURL   string `json:"base_url"`
+	APIKey    string `json:"api_key"`
+	Enabled   bool   `json:"enabled"`
+	Remark    string `json:"remark"`
+	CreatedAt int64  `json:"created_at"`
+	UpdatedAt int64  `json:"updated_at"`
+}
+
+type AIVideoModelReq struct {
+	ProviderID        int    `json:"provider_id"`
+	SiteModelID       string `json:"site_model_id" validate:"required"`
+	ProviderModelID   string `json:"provider_model_id" validate:"required"`
+	DisplayName       string `json:"display_name"`
+	Description       string `json:"description"`
+	DefaultSize       string `json:"default_size"`
+	DefaultSeconds    int    `json:"default_seconds"`
+	DefaultResolution string `json:"default_resolution"`
+	DefaultPreset     string `json:"default_preset"`
+	Enabled           bool   `json:"enabled"`
+	SortOrder         int    `json:"sort_order"`
+}
+
+type AIVideoModelResp struct {
+	ID                int    `json:"id"`
+	ProviderID        int    `json:"provider_id"`
+	ProviderName      string `json:"provider_name"`
+	SiteModelID       string `json:"site_model_id"`
+	ProviderModelID   string `json:"provider_model_id"`
+	DisplayName       string `json:"display_name"`
+	Description       string `json:"description"`
+	DefaultSize       string `json:"default_size"`
+	DefaultSeconds    int    `json:"default_seconds"`
+	DefaultResolution string `json:"default_resolution"`
+	DefaultPreset     string `json:"default_preset"`
+	Enabled           bool   `json:"enabled"`
+	SortOrder         int    `json:"sort_order"`
+	CreatedAt         int64  `json:"created_at"`
+	UpdatedAt         int64  `json:"updated_at"`
+}
+
+type AIVideoSettingReq struct {
+	RetentionDays int `json:"retention_days"`
+}
+
+type AIVideoSettingResp struct {
+	RetentionDays int   `json:"retention_days"`
+	CreatedAt     int64 `json:"created_at"`
+	UpdatedAt     int64 `json:"updated_at"`
+}
+
+type AIVideoGenerateReq struct {
+	Prompt          string   `json:"prompt" validate:"required"`
+	Model           string   `json:"model" validate:"required"`
+	Size            string   `json:"size"`
+	Quality         string   `json:"quality"`
+	Seconds         int      `json:"seconds"`
+	Preset          string   `json:"preset"`
+	ReferenceImages []string `json:"reference_images"`
+}
+
+type AIVideoGenerationResp struct {
+	ID              int      `json:"id"`
+	GenerationID    string   `json:"generation_id"`
+	UpstreamID      string   `json:"upstream_id"`
+	UserID          string   `json:"user_id"`
+	SiteModelID     string   `json:"site_model_id"`
+	ProviderID      int      `json:"provider_id"`
+	ProviderName    string   `json:"provider_name"`
+	ProviderModelID string   `json:"provider_model_id"`
+	Prompt          string   `json:"prompt"`
+	AspectRatio     string   `json:"aspect_ratio"`
+	Size            string   `json:"size"`
+	Quality         string   `json:"quality"`
+	Seconds         int      `json:"seconds"`
+	Preset          string   `json:"preset"`
+	ReferenceImages []string `json:"reference_images"`
+	VideoURL        string   `json:"video_url"`
+	Status          string   `json:"status"`
+	Progress        int      `json:"progress"`
+	Error           string   `json:"error"`
+	ExpiresAt       int64    `json:"expires_at"`
+	CreatedAt       int64    `json:"created_at"`
+	UpdatedAt       int64    `json:"updated_at"`
+}
+
+type AIVideoGenerateResp struct {
+	GenerationID string `json:"generation_id"`
+	Status       string `json:"status"`
+	Progress     int    `json:"progress"`
+	Size         string `json:"size"`
+	Seconds      int    `json:"seconds"`
+	ExpiresAt    int64  `json:"expires_at"`
 }
 
 type AISubscriptionPurchaseResp struct {

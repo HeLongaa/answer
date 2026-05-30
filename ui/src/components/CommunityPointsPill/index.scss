@@ -1,0 +1,129 @@
+.community-points-pill {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  min-height: 38px;
+  max-width: 240px;
+  padding: 0 12px;
+  border: 1px solid rgba(217, 139, 18, 0.24);
+  border-radius: 999px;
+  color: #3a2a12;
+  background:
+    linear-gradient(135deg, rgba(255, 181, 67, 0.28), transparent 58%),
+    rgba(255, 255, 255, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 10px 24px rgba(154, 95, 18, 0.1);
+  font-size: 0.86rem;
+  font-weight: 850;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  backdrop-filter: blur(18px) saturate(1.35);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease,
+    background-color 180ms ease;
+
+  &:hover {
+    color: #8a5600;
+    border-color: rgba(217, 139, 18, 0.4);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 12px 28px rgba(154, 95, 18, 0.16);
+  }
+
+  i {
+    flex: none;
+    color: #b26b00;
+    font-size: 0.98rem;
+  }
+}
+
+.community-points-pill-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.community-points-pill-balance {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: #8a5600;
+  background: rgba(255, 181, 67, 0.18);
+  font-size: 0.76rem;
+}
+
+[data-bs-theme='dark'] {
+  .community-points-pill {
+    color: rgba(255, 238, 202, 0.92);
+    border-color: rgba(255, 197, 94, 0.28);
+    background:
+      linear-gradient(135deg, rgba(255, 181, 67, 0.24), transparent),
+      rgba(22, 31, 45, 0.86);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 10px 24px rgba(0, 0, 0, 0.22);
+
+    &:hover {
+      color: #ffe4a8;
+      border-color: rgba(255, 208, 117, 0.44);
+      background:
+        linear-gradient(135deg, rgba(255, 181, 67, 0.32), transparent),
+        rgba(22, 31, 45, 0.92);
+    }
+
+    i {
+      color: #ffd782;
+    }
+  }
+
+  .community-points-pill-balance {
+    color: #ffe4a8;
+    background: rgba(255, 181, 67, 0.2);
+  }
+}
+
+@media screen and (min-width: 992px) and (max-width: 1280px) {
+  .community-points-pill {
+    max-width: 112px;
+    padding: 0 11px;
+  }
+
+  .community-points-pill-balance {
+    display: none;
+  }
+}
+
+@media screen and (min-width: 992px) and (max-width: 1068px) {
+  .community-points-pill {
+    justify-content: center;
+    width: 38px;
+    max-width: 38px;
+    padding: 0;
+  }
+
+  .community-points-pill-label {
+    display: none;
+  }
+}
+
+@media screen and (max-width: 767.9px) {
+  .community-points-pill {
+    max-width: 172px;
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 0.8rem;
+  }
+
+  .community-points-pill-balance {
+    display: none;
+  }
+}

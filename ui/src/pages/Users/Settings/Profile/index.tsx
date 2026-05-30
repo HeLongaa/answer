@@ -295,242 +295,253 @@ const Index: React.FC = () => {
   }, []);
 
   return (
-    <>
-      <h3 className="mb-4">{t('heading')}</h3>
-      {profileAgent?.enabled && profileAgent?.redirect_url ? (
-        <a href={profileAgent.redirect_url}>
-          {t('goto_modify', { keyPrefix: 'settings' })}
-        </a>
-      ) : null}
-      {!ucAgent?.enabled || profileAgent?.enabled === false ? (
-        <Form noValidate onSubmit={handleSubmit}>
-          <Form.Group controlId="display_name" className="mb-3">
-            <Form.Label>{t('display_name.label')}</Form.Label>
-            <Form.Control
-              required
-              type="text"
-              value={formData.display_name.value}
-              isInvalid={formData.display_name.isInvalid}
-              onChange={(e) =>
-                handleChange({
-                  display_name: {
-                    value: e.target.value,
-                    isInvalid: false,
-                    errorMsg: '',
-                  },
-                })
-              }
-            />
-            <Form.Control.Feedback type="invalid">
-              {formData.display_name.errorMsg}
-            </Form.Control.Feedback>
-          </Form.Group>
+    <div className="card settings-profile-card">
+      <div className="card-body">
+        <h3 className="mb-4">{t('heading')}</h3>
+        {profileAgent?.enabled && profileAgent?.redirect_url ? (
+          <a href={profileAgent.redirect_url}>
+            {t('goto_modify', { keyPrefix: 'settings' })}
+          </a>
+        ) : null}
+        {!ucAgent?.enabled || profileAgent?.enabled === false ? (
+          <Form
+            className="settings-profile-form"
+            noValidate
+            onSubmit={handleSubmit}>
+            <Form.Group controlId="display_name" className="mb-3">
+              <Form.Label>{t('display_name.label')}</Form.Label>
+              <Form.Control
+                required
+                type="text"
+                value={formData.display_name.value}
+                isInvalid={formData.display_name.isInvalid}
+                onChange={(e) =>
+                  handleChange({
+                    display_name: {
+                      value: e.target.value,
+                      isInvalid: false,
+                      errorMsg: '',
+                    },
+                  })
+                }
+              />
+              <Form.Control.Feedback type="invalid">
+                {formData.display_name.errorMsg}
+              </Form.Control.Feedback>
+            </Form.Group>
 
-          <Form.Group controlId="username" className="mb-3">
-            <Form.Label>{t('username.label')}</Form.Label>
-            <Form.Control
-              required
-              type="text"
-              value={formData.username.value}
-              isInvalid={formData.username.isInvalid}
-              onChange={(e) =>
-                handleChange({
-                  username: {
-                    value: e.target.value,
-                    isInvalid: false,
-                    errorMsg: '',
-                  },
-                })
-              }
-            />
-            <Form.Text as="div">{t('username.caption')}</Form.Text>
-            <Form.Control.Feedback type="invalid">
-              {formData.username.errorMsg}
-            </Form.Control.Feedback>
-          </Form.Group>
+            <Form.Group controlId="username" className="mb-3">
+              <Form.Label>{t('username.label')}</Form.Label>
+              <Form.Control
+                required
+                type="text"
+                value={formData.username.value}
+                isInvalid={formData.username.isInvalid}
+                onChange={(e) =>
+                  handleChange({
+                    username: {
+                      value: e.target.value,
+                      isInvalid: false,
+                      errorMsg: '',
+                    },
+                  })
+                }
+              />
+              <Form.Text as="div">{t('username.caption')}</Form.Text>
+              <Form.Control.Feedback type="invalid">
+                {formData.username.errorMsg}
+              </Form.Control.Feedback>
+            </Form.Group>
 
-          <Form.Group controlId="avatar" className="mb-3">
-            <Form.Label>{t('avatar.label')}</Form.Label>
-            <div className="mb-3">
-              <Form.Select
-                name="avatar.type"
-                value={formData.avatar.type}
-                onChange={handleAvatarChange}>
-                <option value="gravatar" key="gravatar">
-                  {t('avatar.gravatar')}
-                </option>
-                <option value="default" key="default">
-                  {t('avatar.default')}
-                </option>
-                <option value="custom" key="custom">
-                  {t('avatar.custom')}
-                </option>
-              </Form.Select>
-            </div>
-            <ImgViewer>
-              <div className="d-flex">
-                {formData.avatar.type === 'gravatar' && (
-                  <Stack>
-                    <Avatar
-                      size="160px"
-                      avatar={formData.avatar.gravatar}
-                      searchStr={`s=256&d=identicon${
-                        count > 0 ? `&t=${new Date().valueOf()}` : ''
-                      }`}
-                      className="me-3 rounded"
-                      alt={formData.display_name.value}
-                    />
-                    <Form.Text className="mt-1">
-                      <span>{t('avatar.gravatar_text')}</span>
-                      <a
-                        href={
-                          usersSettings.gravatar_base_url.includes(
-                            'gravatar.cn',
-                          )
-                            ? 'https://gravatar.cn'
-                            : 'https://gravatar.com'
-                        }
-                        className="ms-1"
-                        target="_blank"
-                        rel="noreferrer">
-                        {usersSettings.gravatar_base_url.includes('gravatar.cn')
-                          ? 'gravatar.cn'
-                          : 'gravatar.com'}
-                      </a>
-                    </Form.Text>
-                  </Stack>
-                )}
-
-                {formData.avatar.type === 'custom' && (
-                  <Stack>
-                    <Stack direction="horizontal" className="align-items-start">
+            <Form.Group controlId="avatar" className="mb-3">
+              <Form.Label>{t('avatar.label')}</Form.Label>
+              <div className="mb-3">
+                <Form.Select
+                  name="avatar.type"
+                  value={formData.avatar.type}
+                  onChange={handleAvatarChange}>
+                  <option value="gravatar" key="gravatar">
+                    {t('avatar.gravatar')}
+                  </option>
+                  <option value="default" key="default">
+                    {t('avatar.default')}
+                  </option>
+                  <option value="custom" key="custom">
+                    {t('avatar.custom')}
+                  </option>
+                </Form.Select>
+              </div>
+              <ImgViewer>
+                <div className="d-flex">
+                  {formData.avatar.type === 'gravatar' && (
+                    <Stack>
                       <Avatar
                         size="160px"
-                        searchStr="s=256"
-                        avatar={formData.avatar.custom}
-                        className="me-2 bg-gray-300 "
+                        avatar={formData.avatar.gravatar}
+                        searchStr={`s=256&d=identicon${
+                          count > 0 ? `&t=${new Date().valueOf()}` : ''
+                        }`}
+                        className="me-3 rounded"
                         alt={formData.display_name.value}
                       />
-                      <ButtonGroup vertical className="fit-content">
-                        <UploadImg type="avatar" uploadCallback={avatarUpload}>
-                          <Icon name="cloud-upload" />
-                        </UploadImg>
-                        <Button
-                          variant="outline-secondary"
-                          onClick={removeCustomAvatar}>
-                          <Icon name="trash" />
-                        </Button>
-                      </ButtonGroup>
+                      <Form.Text className="mt-1">
+                        <span>{t('avatar.gravatar_text')}</span>
+                        <a
+                          href={
+                            usersSettings.gravatar_base_url.includes(
+                              'gravatar.cn',
+                            )
+                              ? 'https://gravatar.cn'
+                              : 'https://gravatar.com'
+                          }
+                          className="ms-1"
+                          target="_blank"
+                          rel="noreferrer">
+                          {usersSettings.gravatar_base_url.includes(
+                            'gravatar.cn',
+                          )
+                            ? 'gravatar.cn'
+                            : 'gravatar.com'}
+                        </a>
+                      </Form.Text>
                     </Stack>
-                    <Form.Text className="mt-1">
-                      <Trans i18nKey="settings.profile.avatar.text">
-                        You can upload your image.
-                      </Trans>
-                    </Form.Text>
-                  </Stack>
-                )}
-                {formData.avatar.type === 'default' && (
-                  <Avatar
-                    size="160px"
-                    avatar=""
-                    alt={formData.display_name.value}
-                  />
-                )}
-              </div>
-            </ImgViewer>
-            <Form.Control
-              isInvalid={formData.avatar.isInvalid}
-              className="d-none"
-            />
-            <Form.Control.Feedback type="invalid">
-              {formData.avatar.errorMsg}
-            </Form.Control.Feedback>
-          </Form.Group>
+                  )}
 
-          <Form.Group controlId="bio" className="mb-3">
-            <Form.Label>
-              {`${t('bio.label')} ${t('optional', {
+                  {formData.avatar.type === 'custom' && (
+                    <Stack>
+                      <Stack
+                        direction="horizontal"
+                        className="align-items-start">
+                        <Avatar
+                          size="160px"
+                          searchStr="s=256"
+                          avatar={formData.avatar.custom}
+                          className="me-2 bg-gray-300 "
+                          alt={formData.display_name.value}
+                        />
+                        <ButtonGroup vertical className="fit-content">
+                          <UploadImg
+                            type="avatar"
+                            uploadCallback={avatarUpload}>
+                            <Icon name="cloud-upload" />
+                          </UploadImg>
+                          <Button
+                            variant="outline-secondary"
+                            onClick={removeCustomAvatar}>
+                            <Icon name="trash" />
+                          </Button>
+                        </ButtonGroup>
+                      </Stack>
+                      <Form.Text className="mt-1">
+                        <Trans i18nKey="settings.profile.avatar.text">
+                          You can upload your image.
+                        </Trans>
+                      </Form.Text>
+                    </Stack>
+                  )}
+                  {formData.avatar.type === 'default' && (
+                    <Avatar
+                      size="160px"
+                      avatar=""
+                      alt={formData.display_name.value}
+                    />
+                  )}
+                </div>
+              </ImgViewer>
+              <Form.Control
+                isInvalid={formData.avatar.isInvalid}
+                className="d-none"
+              />
+              <Form.Control.Feedback type="invalid">
+                {formData.avatar.errorMsg}
+              </Form.Control.Feedback>
+            </Form.Group>
+
+            <Form.Group controlId="bio" className="mb-3">
+              <Form.Label>
+                {`${t('bio.label')} ${t('optional', {
+                  keyPrefix: 'form',
+                })}`}
+              </Form.Label>
+              <Form.Control
+                className="font-monospace"
+                required
+                as="textarea"
+                rows={5}
+                value={formData.bio.value}
+                isInvalid={formData.bio.isInvalid}
+                onChange={(e) =>
+                  handleChange({
+                    bio: {
+                      value: e.target.value,
+                      isInvalid: false,
+                      errorMsg: '',
+                    },
+                  })
+                }
+              />
+              <Form.Control.Feedback type="invalid">
+                {formData.bio.errorMsg}
+              </Form.Control.Feedback>
+            </Form.Group>
+
+            <Form.Group controlId="website" className="mb-3">
+              <Form.Label>{`${t('website.label')} ${t('optional', {
                 keyPrefix: 'form',
-              })}`}
-            </Form.Label>
-            <Form.Control
-              className="font-monospace"
-              required
-              as="textarea"
-              rows={5}
-              value={formData.bio.value}
-              isInvalid={formData.bio.isInvalid}
-              onChange={(e) =>
-                handleChange({
-                  bio: {
-                    value: e.target.value,
-                    isInvalid: false,
-                    errorMsg: '',
-                  },
-                })
-              }
-            />
-            <Form.Control.Feedback type="invalid">
-              {formData.bio.errorMsg}
-            </Form.Control.Feedback>
-          </Form.Group>
+              })}`}</Form.Label>
+              <Form.Control
+                required
+                type="url"
+                placeholder={t('website.placeholder')}
+                value={formData.website.value}
+                isInvalid={formData.website.isInvalid}
+                onChange={(e) =>
+                  handleChange({
+                    website: {
+                      value: e.target.value,
+                      isInvalid: false,
+                      errorMsg: '',
+                    },
+                  })
+                }
+              />
+              <Form.Control.Feedback type="invalid">
+                {formData.website.errorMsg}
+              </Form.Control.Feedback>
+            </Form.Group>
 
-          <Form.Group controlId="website" className="mb-3">
-            <Form.Label>{`${t('website.label')} ${t('optional', {
-              keyPrefix: 'form',
-            })}`}</Form.Label>
-            <Form.Control
-              required
-              type="url"
-              placeholder={t('website.placeholder')}
-              value={formData.website.value}
-              isInvalid={formData.website.isInvalid}
-              onChange={(e) =>
-                handleChange({
-                  website: {
-                    value: e.target.value,
-                    isInvalid: false,
-                    errorMsg: '',
-                  },
-                })
-              }
-            />
-            <Form.Control.Feedback type="invalid">
-              {formData.website.errorMsg}
-            </Form.Control.Feedback>
-          </Form.Group>
+            <Form.Group controlId="location" className="mb-3">
+              <Form.Label>{`${t('location.label')} ${t('optional', {
+                keyPrefix: 'form',
+              })}`}</Form.Label>
+              <Form.Control
+                required
+                type="text"
+                placeholder={t('location.placeholder')}
+                value={formData.location.value}
+                isInvalid={formData.location.isInvalid}
+                onChange={(e) =>
+                  handleChange({
+                    location: {
+                      value: e.target.value,
+                      isInvalid: false,
+                      errorMsg: '',
+                    },
+                  })
+                }
+              />
+              <Form.Control.Feedback type="invalid">
+                {formData.location.errorMsg}
+              </Form.Control.Feedback>
+            </Form.Group>
 
-          <Form.Group controlId="location" className="mb-3">
-            <Form.Label>{`${t('location.label')} ${t('optional', {
-              keyPrefix: 'form',
-            })}`}</Form.Label>
-            <Form.Control
-              required
-              type="text"
-              placeholder={t('location.placeholder')}
-              value={formData.location.value}
-              isInvalid={formData.location.isInvalid}
-              onChange={(e) =>
-                handleChange({
-                  location: {
-                    value: e.target.value,
-                    isInvalid: false,
-                    errorMsg: '',
-                  },
-                })
-              }
-            />
-            <Form.Control.Feedback type="invalid">
-              {formData.location.errorMsg}
-            </Form.Control.Feedback>
-          </Form.Group>
-
-          <Button variant="primary" type="submit">
-            {t('btn_name')}
-          </Button>
-        </Form>
-      ) : null}
-    </>
+            <Button variant="primary" type="submit">
+              {t('btn_name')}
+            </Button>
+          </Form>
+        ) : null}
+      </div>
+    </div>
   );
 };
 

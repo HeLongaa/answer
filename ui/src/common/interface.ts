@@ -973,6 +973,68 @@ export interface AiImageGenerateResult {
   expires_at: number;
 }
 
+export interface AiVideoModel {
+  id: number;
+  provider_id: number;
+  provider_name: string;
+  site_model_id: string;
+  provider_model_id: string;
+  display_name: string;
+  description: string;
+  default_size: string;
+  default_seconds: number;
+  default_resolution: string;
+  default_preset: string;
+  enabled: boolean;
+  sort_order: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AiVideoGeneration {
+  id: number;
+  generation_id: string;
+  upstream_id: string;
+  user_id: string;
+  site_model_id: string;
+  provider_id: number;
+  provider_name: string;
+  provider_model_id: string;
+  prompt: string;
+  aspect_ratio: string;
+  size: string;
+  quality: string;
+  seconds: number;
+  preset: string;
+  reference_images: string[];
+  video_url: string;
+  status: string;
+  progress: number;
+  error: string;
+  expires_at: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AiVideoGenerateParams {
+  prompt: string;
+  model: string;
+  size?: string;
+  quality?: string;
+  seconds?: number;
+  preset?: string;
+  reference_images?: string[];
+}
+
+export interface AiVideoGenerateResult {
+  generation_id: string;
+  status: string;
+  progress: number;
+  size: string;
+  seconds: number;
+  expires_at: number;
+}
+
 export interface AiSubscriptionOverview {
   plan_id: string;
   plan_name: string;
@@ -982,6 +1044,12 @@ export interface AiSubscriptionOverview {
   image_quota: number;
   image_quota_used: number;
   image_quota_remaining: number;
+  video_daily_quota: number;
+  video_daily_used: number;
+  video_daily_remaining: number;
+  video_quota: number;
+  video_quota_used: number;
+  video_quota_remaining: number;
   available_models: string[];
   consume_rates: AiSubscriptionModelRate[];
   period_start: number;
@@ -997,6 +1065,8 @@ export interface AiSubscriptionPlan {
   monthly_price: number;
   chat_points: number;
   image_quota: number;
+  video_daily_quota: number;
+  video_quota: number;
   purchase_url: string;
   model_mapping_ids: number[];
   available_model_ids: string[];

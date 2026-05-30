@@ -79,6 +79,14 @@ const Index: FC<Props> = ({
   const currentBtn = moreBtnData.find((btn) => {
     return (typeof btn === 'string' ? btn : btn.sort) === currentSort;
   });
+  const currentItem = data.find((btn) => {
+    return (typeof btn === 'string' ? btn : btn.sort) === currentSort;
+  });
+  const currentName = currentItem
+    ? typeof currentItem === 'string'
+      ? currentItem
+      : currentItem.name
+    : currentSort;
 
   return (
     <>
@@ -153,7 +161,7 @@ const Index: FC<Props> = ({
           wrapClassName,
         )}>
         <Dropdown.Toggle size="sm" variant="outline-secondary">
-          {t(currentSort)}
+          {t(currentName)}
         </Dropdown.Toggle>
         <Dropdown.Menu
           renderOnMount
@@ -171,7 +179,7 @@ const Index: FC<Props> = ({
               <Dropdown.Item
                 as="a"
                 key={key}
-                active={currentSort === name}
+                active={currentSort === key}
                 className={classNames('text-capitalize', className)}
                 href={
                   pathname

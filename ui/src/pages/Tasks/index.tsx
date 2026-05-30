@@ -1,11 +1,12 @@
-import { FC, useState } from 'react';
-import { Button, Badge, Form, Modal } from 'react-bootstrap';
+import { FC, KeyboardEvent, MouseEvent, useState } from 'react';
+import { Button, Badge, Form, ListGroup, Modal } from 'react-bootstrap';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { Empty, FormatTime, Pagination } from '@/components';
 import { claimTask, submitTask, TaskItem, useTasks } from '@/services';
 import { toastStore } from '@/stores';
 import { usePageTags } from '@/hooks';
+import '@/components/QuestionList/index.scss';
 
 import './index.scss';
 
@@ -22,9 +23,40 @@ const statusText = {
   rejected: '已驳回',
 };
 
+const statusVariant = {
+  open: 'success',
+  closed: 'danger',
+  failed: 'danger',
+  rejected: 'danger',
+};
+
 const getErrorMessage = (err: any, fallback: string) => {
   return err?.msg || err?.message || fallback;
 };
+
+const stopTaskActionPropagation = (evt: MouseEvent) => {
+  evt.stopPropagation();
+};
+
+const renderTaskText = (text?: string) =>
+  text?.trim() ? (
+    <p className="task-square-detail-text">{text}</p>
+  ) : (
+    <span className="task-square-detail-empty">暂无</span>
+  );
+
+const renderTaskLinks = (items?: string[]) =>
+  items?.length ? (
+    <div className="task-square-detail-links">
+      {items.map((item) => (
+        <a href={item} target="_blank" rel="noreferrer" key={item}>
+          {item}
+        </a>
+      ))}
+    </div>
+  ) : (
+    <span className="task-square-detail-empty">暂无</span>
+  );
 
 const Tasks: FC = () => {
   const [params] = useSearchParams();
@@ -38,6 +70,7 @@ const Tasks: FC = () => {
   const [submitTarget, setSubmitTarget] = useState<TaskItem | null>(null);
   const [submitContent, setSubmitContent] = useState('');
   const [submitLinks, setSubmitLinks] = useState('');
+  const [expandedTaskID, setExpandedTaskID] = useState<number | null>(null);
 
   usePageTags({ title: '任务广场' });
 
@@ -82,6 +115,21 @@ const Tasks: FC = () => {
     }
   };
 
+  const toggleTaskDetail = (taskID: number) => {
+    setExpandedTaskID((current) => (current === taskID ? null : taskID));
+  };
+
+  const handleTaskKeyDown = (
+    evt: KeyboardEvent<HTMLElement>,
+    taskID: number,
+  ) => {
+    if (evt.key !== 'Enter' && evt.key !== ' ') {
+      return;
+    }
+    evt.preventDefault();
+    toggleTaskDetail(taskID);
+  };
+
   return (
     <div className="task-square-page">
       <div className="task-square-head">
@@ -112,76 +160,180 @@ const Tasks: FC = () => {
         </Link>
       </div>
 
-      <div className="task-square-list">
+      <div className="question-list-table-head task-square-table-head">
+        <span>任务</span>
+        <span>奖励</span>
+        <span>状态</span>
+        <span>时间</span>
+      </div>
+
+      <ListGroup className="question-list-dense question-list-view-card rounded-0 task-square-list">
         {data?.list?.length === 0 ? <Empty /> : null}
         {data?.list?.map((task) => {
-          const shouldShowReviewComment =
-            (task.status === 'closed' || task.status === 'rejected') &&
-            Boolean(task.review_comment);
-          const requirementTitle = shouldShowReviewComment
-            ? '审核说明'
-            : '提交要求';
-          const requirementContent = shouldShowReviewComment
-            ? task.review_comment
-            : task.submission_requirements;
+          const isFeatured = task.tags.includes('精选');
+          const visibleTags = task.tags.filter((tag) => tag !== '精选');
+          const activityTime =
+            task.deadline || task.completed_at || task.updated_at;
+          const expanded = expandedTaskID === task.id;
 
           return (
-            <article className="task-square-card" key={task.id}>
-              <div className="task-square-card-main">
-                <div className="task-square-card-title">
-                  <h2>{task.title}</h2>
-                  <Badge bg={task.status === 'open' ? 'success' : 'secondary'}>
+            <ListGroup.Item
+              as="article"
+              className={`question-list-row task-square-card ${
+                isFeatured
+                  ? 'question-list-row-featured'
+                  : 'border-start-0 border-end-0'
+              } ${expanded ? 'task-square-card-expanded' : ''}`}
+              key={task.id}
+              role="button"
+              tabIndex={0}
+              aria-expanded={expanded}
+              onClick={() => toggleTaskDetail(task.id)}
+              onKeyDown={(evt) => handleTaskKeyDown(evt, task.id)}>
+              <div className="question-list-grid task-square-card-grid">
+                <div className="question-list-main task-square-card-main">
+                  <h5 className="question-list-title text-wrap text-break task-square-card-title">
+                    <span className="question-list-title-link link-dark">
+                      {isFeatured ? (
+                        <span className="question-featured-badge">精选</span>
+                      ) : null}
+                      <span>{task.title}</span>
+                    </span>
+                  </h5>
+                  <div className="task-square-meta">
+                    <span>
+                      发布人：{task.user_display_name || task.user_id}
+                    </span>
+                    {task.assignee_id && task.assignee_id !== '0' ? (
+                      <span>
+                        领取人：
+                        {task.assignee_display_name || task.assignee_id}
+                      </span>
+                    ) : null}
+                  </div>
+                  {visibleTags.length > 0 ? (
+                    <div className="question-tags question-list-tags task-square-tags">
+                      {visibleTags.map((tag) => (
+                        <span className="task-square-tag" key={tag}>
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  <span className="task-square-detail-hint">
+                    {expanded ? '收起详情' : '查看详情'}
+                  </span>
+                </div>
+
+                <div className="question-list-metric task-square-reward">
+                  <span className="question-list-mobile-label">奖励</span>
+                  <span>{task.reward_points}</span>
+                </div>
+
+                <div className="question-list-metric task-square-status">
+                  <span className="question-list-mobile-label">状态</span>
+                  <Badge bg={statusVariant[task.status] || 'secondary'}>
                     {statusText[task.status] || task.status}
                   </Badge>
-                </div>
-                <div className="task-square-meta">
-                  <span>发布人：{task.user_display_name || task.user_id}</span>
-                  {task.assignee_id && task.assignee_id !== '0' ? (
-                    <span>
-                      领取人：{task.assignee_display_name || task.assignee_id}
-                    </span>
-                  ) : null}
-                  <span>奖励：{task.reward_points} 积分</span>
-                  {task.deadline ? (
-                    <span>
-                      截止：
-                      <FormatTime time={task.deadline} />
-                    </span>
-                  ) : null}
-                </div>
-                {task.tags.length > 0 ? (
-                  <div className="task-square-tags">
-                    {task.tags.map((tag) => (
-                      <span key={tag}>{tag}</span>
-                    ))}
+                  <div
+                    className="task-square-card-actions"
+                    onClick={stopTaskActionPropagation}>
+                    {task.status === 'open' ? (
+                      <Button size="sm" onClick={() => handleClaim(task)}>
+                        领取
+                      </Button>
+                    ) : null}
+                    {task.status === 'in_progress' ? (
+                      <Button
+                        size="sm"
+                        variant="outline-primary"
+                        onClick={() => setSubmitTarget(task)}>
+                        提交
+                      </Button>
+                    ) : null}
                   </div>
-                ) : null}
-                {requirementContent ? (
-                  <div className="task-square-requirement">
-                    <strong>{requirementTitle}</strong>
-                    <p>{requirementContent}</p>
+                </div>
+
+                <div className="question-list-activity task-square-activity">
+                  <span className="question-list-mobile-label">时间</span>
+                  {activityTime ? (
+                    <FormatTime
+                      time={activityTime}
+                      className="text-secondary"
+                    />
+                  ) : (
+                    <span className="text-secondary">无截止</span>
+                  )}
+                </div>
+              </div>
+              {expanded ? (
+                <div className="task-square-detail-panel">
+                  <div className="task-square-detail-section task-square-detail-section-wide">
+                    <strong>任务详情</strong>
+                    {renderTaskText(task.description)}
                   </div>
-                ) : null}
-              </div>
-              <div className="task-square-card-actions">
-                {task.status === 'open' ? (
-                  <Button size="sm" onClick={() => handleClaim(task)}>
-                    领取任务
-                  </Button>
-                ) : null}
-                {task.status === 'in_progress' ? (
-                  <Button
-                    size="sm"
-                    variant="outline-primary"
-                    onClick={() => setSubmitTarget(task)}>
-                    提交成果
-                  </Button>
-                ) : null}
-              </div>
-            </article>
+                  <div className="task-square-detail-section">
+                    <strong>提交要求</strong>
+                    {renderTaskText(task.submission_requirements)}
+                  </div>
+                  <div className="task-square-detail-section">
+                    <strong>附件/链接</strong>
+                    {renderTaskLinks(task.attachments)}
+                  </div>
+                  <div className="task-square-detail-section">
+                    <strong>
+                      {task.status === 'rejected' ? '拒绝理由' : '审核说明'}
+                    </strong>
+                    {renderTaskText(task.review_comment)}
+                  </div>
+                  {task.submission ? (
+                    <>
+                      <div className="task-square-detail-section task-square-detail-section-wide">
+                        <strong>提交成果</strong>
+                        {renderTaskText(task.submission.content)}
+                      </div>
+                      <div className="task-square-detail-section">
+                        <strong>成果链接</strong>
+                        {renderTaskLinks(task.submission.links)}
+                      </div>
+                      <div className="task-square-detail-section">
+                        <strong>
+                          {task.submission.status === 'rejected'
+                            ? '退回理由'
+                            : '验收说明'}
+                        </strong>
+                        {renderTaskText(task.submission.review_note)}
+                      </div>
+                    </>
+                  ) : null}
+                  <div className="task-square-detail-section task-square-detail-meta">
+                    <strong>后台记录</strong>
+                    <span>任务 ID：{task.id}</span>
+                    <span>
+                      审核人：
+                      {task.reviewer_id && task.reviewer_id !== '0'
+                        ? task.reviewer_id
+                        : '暂无'}
+                    </span>
+                    {task.claimed_at ? (
+                      <span>
+                        领取时间：
+                        <FormatTime time={task.claimed_at} />
+                      </span>
+                    ) : null}
+                    {task.completed_at ? (
+                      <span>
+                        完成时间：
+                        <FormatTime time={task.completed_at} />
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+            </ListGroup.Item>
           );
         })}
-      </div>
+      </ListGroup>
       <Pagination
         currentPage={page}
         pageSize={PAGE_SIZE}

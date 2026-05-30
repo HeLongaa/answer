@@ -139,3 +139,43 @@ export const getAdminAiImageSetting = () => {
 export const updateAdminAiImageSetting = (params) => {
   return request.put(`${base}/image-setting`, params);
 };
+
+export const getAdminAiVideoProviders = () => {
+  return request.get<any[]>(`${base}/video-providers`);
+};
+
+export const createAdminAiVideoProvider = (params) => {
+  return request.post(`${base}/video-providers`, params);
+};
+
+export const updateAdminAiVideoProvider = (id: number, params) => {
+  return request.put(`${base}/video-providers/${id}`, params);
+};
+
+export const deleteAdminAiVideoProvider = (id: number) => {
+  return request.delete(`${base}/video-providers/${id}`);
+};
+
+export const getAdminAiVideoModels = () => {
+  return request.get<any[]>(`${base}/video-models`);
+};
+
+export const createAdminAiVideoModel = (params) => {
+  return request.post(`${base}/video-models`, params);
+};
+
+export const updateAdminAiVideoModel = (id: number, params) => {
+  return request.put(`${base}/video-models/${id}`, params);
+};
+
+export const deleteAdminAiVideoModel = (id: number) => {
+  return request.delete(`${base}/video-models/${id}`);
+};
+
+export const getAdminAiVideoSetting = () => {
+  return request.get<any>(`${base}/video-setting`);
+};
+
+export const updateAdminAiVideoSetting = (params) => {
+  return request.put(`${base}/video-setting`, params);
+};

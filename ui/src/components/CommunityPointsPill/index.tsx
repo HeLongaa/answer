@@ -18,38 +18,33 @@
  */
 
 import { FC, memo } from 'react';
-import { Row, Col } from 'react-bootstrap';
-import { useTranslation } from 'react-i18next';
-import { Outlet } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
-import { usePageTags } from '@/hooks';
-
-import Nav from './components/Nav';
-
+import { usePointAccount } from '@/services';
+import { formatCount } from '@/utils';
+import Icon from '../Icon';
 import './index.scss';
 
-const Index: FC = () => {
-  const { t } = useTranslation('translation', {
-    keyPrefix: 'settings.profile',
-  });
+interface Props {
+  visible?: boolean;
+}
 
-  usePageTags({
-    title: t('settings', { keyPrefix: 'page_title' }),
-  });
+const CommunityPointsPill: FC<Props> = ({ visible = true }) => {
+  const { data: pointAccount } = usePointAccount();
+
+  if (!visible) {
+    return null;
+  }
+
   return (
-    <Row className="settings-page mt-4 mb-5 pb-5 g-4">
-      <Col className="settings-nav">
-        <div className="card settings-nav-card">
-          <div className="card-body">
-            <Nav />
-          </div>
-        </div>
-      </Col>
-      <Col className="settings-main">
-        <Outlet />
-      </Col>
-    </Row>
+    <Link className="community-points-pill" to="/users/settings/points">
+      <Icon name="coin" />
+      <span className="community-points-pill-label">贡献积分</span>
+      <span className="community-points-pill-balance">
+        {formatCount(pointAccount?.balance || 0)}
+      </span>
+    </Link>
   );
 };
 
-export default memo(Index);
+export default memo(CommunityPointsPill);

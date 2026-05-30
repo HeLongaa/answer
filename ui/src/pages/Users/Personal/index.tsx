@@ -45,6 +45,7 @@ import {
   Votes,
   Badges,
 } from './components';
+import './index.scss';
 
 const Personal: FC = () => {
   const { tabName = 'overview', username = '' } = useParams();
@@ -77,57 +78,76 @@ const Personal: FC = () => {
     title: pageTitle,
   });
 
+  const isOverview = tabName === 'overview';
+
   return (
-    <div className="pt-4 mb-5">
+    <div className="personal-page pt-4 mb-5">
       <Row>
         <Col>
           {userInfo?.status !== 'normal' && userInfo?.status_msg && (
             <Alert data={userInfo?.status_msg} />
           )}
-          <div className="d-md-flex d-block flex-wrap justify-content-between">
-            <UserInfo data={userInfo as UserInfoRes} />
-            {isSelf && (
-              <div className="mb-3">
-                <Link
-                  className="btn btn-outline-secondary"
-                  to="/users/settings/profile">
-                  {t('edit_profile')}
-                </Link>
+
+          <div className="card personal-card personal-hero-card mb-4">
+            <div className="card-body">
+              <div className="d-md-flex d-block flex-wrap justify-content-between gap-3">
+                <UserInfo data={userInfo as UserInfoRes} isSelf={isSelf} />
+                {isSelf && (
+                  <div className="personal-edit-action">
+                    <Link
+                      className="btn btn-outline-secondary"
+                      to="/users/settings/profile">
+                      {t('edit_profile')}
+                    </Link>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
-          <NavBar tabName={tabName} slug={username} isSelf={isSelf} />
+          <div className="card personal-card personal-nav-card mb-4">
+            <div className="card-body">
+              <NavBar tabName={tabName} slug={username} isSelf={isSelf} />
+            </div>
+          </div>
 
           <Overview
-            visible={tabName === 'overview'}
+            visible={isOverview}
             introduction={userInfo?.bio_html || ''}
             data={topData}
             username={username}
           />
 
-          <ListHead
-            count={tabName === 'reputation' ? Number(userInfo?.rank) : count}
-            sort={order}
-            visible={tabName !== 'overview'}
-            tabName={tabName}
-          />
-          <Answers data={list} visible={tabName === 'answers'} />
-          <DefaultList
-            data={list}
-            tabName={tabName}
-            visible={tabName === 'questions' || tabName === 'bookmarks'}
-          />
-          <Reputation data={list} visible={tabName === 'reputation'} />
-          <Comments data={list} visible={tabName === 'comments'} />
-          <Votes data={list} visible={tabName === 'votes'} />
-          <Badges
-            data={list}
-            visible={tabName === 'badges'}
-            username={username}
-          />
-          {!list?.length && !isLoading && <Empty />}
+          {!isOverview && (
+            <div className="card personal-card personal-list-card">
+              <div className="card-body">
+                <ListHead
+                  count={
+                    tabName === 'reputation' ? Number(userInfo?.rank) : count
+                  }
+                  sort={order}
+                  visible
+                  tabName={tabName}
+                />
+                <Answers data={list} visible={tabName === 'answers'} />
+                <DefaultList
+                  data={list}
+                  tabName={tabName}
+                  visible={tabName === 'questions' || tabName === 'bookmarks'}
+                />
+                <Reputation data={list} visible={tabName === 'reputation'} />
+                <Comments data={list} visible={tabName === 'comments'} />
+                <Votes data={list} visible={tabName === 'votes'} />
+                <Badges
+                  data={list}
+                  visible={tabName === 'badges'}
+                  username={username}
+                />
+                {!list?.length && !isLoading && <Empty />}
+              </div>
+            </div>
+          )}
 
-          {count > 0 && (
+          {!isOverview && count > 0 && (
             <div className="d-flex justify-content-center py-4">
               <Pagination
                 pageSize={30}
@@ -137,20 +157,25 @@ const Personal: FC = () => {
             </div>
           )}
 
-          {tabName === 'overview' && (
-            <>
-              <h5 className="mb-3">{t('stats')}</h5>
-              {userInfo?.created_at && (
-                <div className="text-secondary">
-                  <FormatTime time={userInfo.created_at} preFix={t('joined')} />
-                  {t('comma')}{' '}
-                  <FormatTime
-                    time={userInfo.last_login_date}
-                    preFix={t('last_login')}
-                  />
-                </div>
-              )}
-            </>
+          {isOverview && (
+            <div className="card personal-card personal-stats-card">
+              <div className="card-body">
+                <h5 className="mb-3">{t('stats')}</h5>
+                {userInfo?.created_at && (
+                  <div className="text-secondary">
+                    <FormatTime
+                      time={userInfo.created_at}
+                      preFix={t('joined')}
+                    />
+                    {t('comma')}{' '}
+                    <FormatTime
+                      time={userInfo.last_login_date}
+                      preFix={t('last_login')}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </Col>
       </Row>

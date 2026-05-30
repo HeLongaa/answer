@@ -30,8 +30,9 @@ import { siteInfoStore } from '@/stores';
 import './index.scss';
 
 const chatNavItems = [
-  { icon: 'pencil-square', label: '新对话', active: true },
+  { icon: 'pencil-square', label: '聊天', active: true },
   { icon: 'image', label: '图片生成' },
+  { icon: 'camera-reels', label: '视频生成' },
   { icon: 'credit-card-2-front', label: '订阅管理' },
   { icon: 'stars', label: '订阅兑换' },
 ];
@@ -43,6 +44,8 @@ const MobileSideNav = ({ show, onHide }) => {
   const isChat = pathname === '/';
   const isImageWorkspace =
     isChat && new URLSearchParams(search).get('workspace') === 'image';
+  const isVideoWorkspace =
+    isChat && new URLSearchParams(search).get('workspace') === 'video';
   const isUserSideNavPage =
     pathname === '/users' ||
     /^\/users\/[^/]+(\/(answers|questions|bookmarks|reputation|badges|votes))?$/.test(
@@ -69,6 +72,10 @@ const MobileSideNav = ({ show, onHide }) => {
   };
   const openImageGeneration = () => {
     window.dispatchEvent(new CustomEvent('hcai-open-image-generation'));
+    closeSideNav();
+  };
+  const openVideoGeneration = () => {
+    window.dispatchEvent(new CustomEvent('hcai-open-video-generation'));
     closeSideNav();
   };
   const loadConversation = (id: string) => {
@@ -133,7 +140,7 @@ const MobileSideNav = ({ show, onHide }) => {
             end
             onClick={closeSideNav}
             className={pathname === '/' ? 'active' : ''}>
-            CHAT
+            工作台
           </NavLink>
           <NavLink
             to="/questions"
@@ -163,18 +170,24 @@ const MobileSideNav = ({ show, onHide }) => {
                 <button
                   type="button"
                   className={
-                    (item.label === '新对话' && !isImageWorkspace) ||
-                    (item.label === '图片生成' && isImageWorkspace)
+                    (item.label === '聊天' &&
+                      !isImageWorkspace &&
+                      !isVideoWorkspace) ||
+                    (item.label === '图片生成' && isImageWorkspace) ||
+                    (item.label === '视频生成' && isVideoWorkspace)
                       ? 'active'
                       : ''
                   }
                   key={item.label}
                   onClick={() => {
-                    if (item.label === '新对话') {
+                    if (item.label === '聊天') {
                       startNewConversation();
                     }
                     if (item.label === '图片生成') {
                       openImageGeneration();
+                    }
+                    if (item.label === '视频生成') {
+                      openVideoGeneration();
                     }
                     if (item.label === '订阅管理') {
                       openSubscription();

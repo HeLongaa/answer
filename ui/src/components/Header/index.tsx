@@ -40,7 +40,12 @@ import {
   sideNavStore,
 } from '@/stores';
 import { logout, useQueryNotificationStatus } from '@/services';
-import { Icon, MobileSideNav } from '@/components';
+import {
+  AiSubscriptionPill,
+  CommunityPointsPill,
+  Icon,
+  MobileSideNav,
+} from '@/components';
 
 import NavItems from './components/NavItems';
 
@@ -142,8 +147,10 @@ const Header: FC = () => {
     location.pathname.startsWith('/badges') ||
     location.pathname.startsWith('/review');
   const isSubscriptionPage = location.pathname === '/subscription';
+  const isChatPage = location.pathname === '/';
+  const showAiSubscriptionPill = isChatPage || isSubscriptionPage;
   const isSideNavPage =
-    location.pathname === '/' ||
+    isChatPage ||
     isSubscriptionPage ||
     isTaskPage ||
     isCommunityPage ||
@@ -243,7 +250,7 @@ const Header: FC = () => {
               className={classnames('segment-item', {
                 active: location.pathname === '/',
               })}>
-              CHAT
+              工作台
             </NavLink>
             <NavLink
               to="/questions"
@@ -291,7 +298,18 @@ const Header: FC = () => {
 
         {/* pc nav */}
         {user?.username ? (
-          <Nav className="d-flex align-items-center flex-nowrap flex-row ms-auto ms-lg-0">
+          <Nav className="d-flex align-items-center flex-nowrap flex-row ms-auto">
+            {showAiSubscriptionPill ? (
+              <Nav.Item className="me-2">
+                <AiSubscriptionPill />
+              </Nav.Item>
+            ) : null}
+            {isCommunityPage || isTaskPage ? (
+              <Nav.Item className="me-2">
+                <CommunityPointsPill />
+              </Nav.Item>
+            ) : null}
+
             <Nav.Item className="me-2 d-block d-xl-none">
               <NavLink
                 to={askUrl}
